@@ -1,3 +1,10 @@
 ### Read the site basics - expect 200 and an object with name, tagline, phone, email and address
 GET {{baseUrl}}/api/odin/site
 Accept: application/json
+
+### Read one image - expect 200 and the image
+GET {{baseUrl}}/api/odin/image?name=logo-dark.svg
+
+### Ask for an image that does not exist - expect 404 and a message
+GET {{baseUrl}}/api/odin/image?name=missing.png
+Accept: application/json

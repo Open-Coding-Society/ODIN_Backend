@@ -42,6 +42,7 @@
       "allowed_requests": [
         "GET /",
         "GET /api/id",
+        "GET /api/odin/image",
         "GET /api/odin/site",
         "GET /login",
         "POST /api/authenticate",

@@ -3,6 +3,7 @@
     "GET /",
     "POST /api/authenticate",
     "GET /api/guest/window",
+    "GET /api/odin/image",
     "GET /api/odin/site",
     "DELETE /api/presence/",
     "GET /api/presence/",
