@@ -9,6 +9,7 @@ something, or what a form offers, reads these files; it does not name a role, a 
 | `account_types.json` | The kinds of account, their roles, who counts as staff, how long a verification lasts, what each type may do, and how each behaves on the sign-up form | `model/account_types.py` | `GET /api/signup-options` (the form's part only) |
 | `schools.json` | The schools a student can choose at sign-up | `model/schools.py` | `GET /api/signup-options` |
 | `permissions.json` | Who may make each request: open to anyone, any signed-in account, or only some roles | `model/permissions.py` | not sent |
+| `odin_site.json` | The basics of the ODIN Diagnostics website: the company name, its tagline and its contact details | `model/odin_site.py` | `GET /api/odin/site` (from the saved row) |
 
 Each file is added to this folder in the change that makes its values data. Data files that are not
 here yet: `model/presence_schedules.json`, the starter bell schedules for the presence system.
@@ -95,6 +96,20 @@ that is not `"METHOD /route"`, and a `legacy_open` group with no owner or date.
 
 It calls the routes on a throwaway copy of the app with no network and no provider keys
 (`scripts/rbac/rbac_prober.py`), so it is safe to run anywhere.
+
+## odin_site.json
+
+The basics every page of the ODIN Diagnostics website shows: `name`, `tagline`, `phone`, `email` and
+`address`. Each must be text that is not blank and fits its column; the sizes are `FIELDS` in
+`model/odin_site.py`.
+
+This file is a seed, so it is loaded differently from the files above. It is read when the database is
+set up (`scripts/db_init.py`, or `flask custom generate_data`), not at startup, and it fills the
+`odin_site` table only while that table is empty. `GET /api/odin/site` serves the saved row, so editing
+the file does not change a database that already has one. Bad data stops the seed with a message naming
+the file and the field (`odin_site.json: phone is required`).
+
+`python scripts/verify/verify_odin_site.py` checks the seed and the route.
 
 ## What the sign-up page is told
 

@@ -37,6 +37,7 @@ from api.user_preferences import user_preferences_api
 from api.snapshot_proxy import snapshot_proxy
 from api.rfid_api import rfid_api
 from api.presence_api import presence_api
+from api.odin_api import odin_api  # ODIN Diagnostics website content
 #from api.announcement import announcement_api ##temporary revert
 
 # database Initialization functions
@@ -57,6 +58,7 @@ from model.post import Post, init_posts
 from model.microblog import MicroBlog, Topic, initMicroblogs
 from model.leaderboard import ScoreCounterEvent, ElementaryLeaderboardEvent
 from hacks.jokes import initJokes 
+from model.odin_site import initOdinSite
 # from model.announcement import Announcement ##temporary revert
 
 # server only Views
@@ -99,6 +101,7 @@ app.register_blueprint(user_preferences_api)  # Styling, language and text-to-sp
 app.register_blueprint(snapshot_proxy)  # Register the snapshot proxy API
 app.register_blueprint(rfid_api)  # Register the RFID attendance API
 app.register_blueprint(presence_api)  # Register the generic presence event API
+app.register_blueprint(odin_api)  # Register the ODIN Diagnostics website content API
 # app.register_blueprint(announcement_api) ##temporary revert
 
 # Jokes file initialization
@@ -305,6 +308,7 @@ def generate_data():
     initPersonas()
     initPersonaUsers()
     seed_schedules()  # presence schedules from model/presence_schedules.json
+    initOdinSite()  # ODIN site basics from model/dataconfigs/odin_site.json
 
 # Register the custom command group with the Flask application
 app.cli.add_command(custom_cli)
