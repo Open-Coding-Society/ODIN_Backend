@@ -7,14 +7,16 @@ before and after to prove it was never touched.
 Usage:  python scripts/verify/verify_odin_site.py        (from the flask repo root)
 Exit:   0 all checks passed, 1 otherwise.
 """
-import hashlib, json, os, sys, tempfile
+import contextlib, hashlib, io, json, os, secrets, sys, tempfile
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 os.chdir(REPO)
 sys.path.insert(0, REPO)
+sys.path.insert(0, os.path.join(REPO, "scripts"))
 os.environ.setdefault("SECRET_KEY", "verify-odin-site")
 
 REAL_DB = os.path.join(REPO, "instance", "volumes", "user_management.db")
+PASSWORD = "Aa1!" + secrets.token_urlsafe(16)
 URL = "/api/odin/site"
 _failures = []
 
@@ -30,11 +32,11 @@ def sha256(path):
         return hashlib.sha256(fh.read()).hexdigest()
 
 
-def seed_file(content):
-    """A throwaway seed file holding this content."""
+def seed_file(text):
+    """A throwaway seed file holding this text."""
     path = os.path.join(tempfile.mkdtemp(prefix="odin-seed-"), "odin_site.json")
-    with open(path, "w") as fh:
-        json.dump(content, fh)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(text)
     return path
 
 
@@ -47,56 +49,124 @@ def main():
     engine = create_engine(f"sqlite:///{os.path.join(tempfile.mkdtemp(prefix='odin-'), 'new.db')}")
     with app.app_context():
         db.engines[None] = engine
-    import main  # noqa: F401  registers every model and blueprint
+    import main as flask_main  # registers every model and blueprint
+    from model import account_types
+    from model.user import User
     from model.odin_site import OdinSite, initOdinSite, FIELDS, SEED_FILE
+    from init_odin_site import seed_site
     app.config["TESTING"] = True
 
-    with open(SEED_FILE) as fh:
+    with open(SEED_FILE, encoding="utf-8") as fh:
         seed = json.load(fh)
 
-    def refused(content):
-        """True when seeding from this content raises ValueError and saves no row."""
-        try:
-            initOdinSite(seed_file(content))
-        except ValueError:
-            return OdinSite.query.count() == 0
-        return False
+    # Each database step opens its own app context and every request is made outside one: Flask-Login
+    # keeps the signed-in user on the context, so one left open would carry a login to the next client.
+    def rows():
+        with app.app_context():
+            return OdinSite.query.count()
 
+    def run_seed(path=SEED_FILE):
+        with app.app_context():
+            return initOdinSite(path)
+
+    def clear():
+        with app.app_context():
+            OdinSite.query.delete()
+            db.session.commit()
+
+    def refusal(content):
+        """The message a seed with this content is refused with, or None when it was not refused or saved a row."""
+        text = content if isinstance(content, str) else json.dumps(content)
+        try:
+            run_seed(seed_file(text))
+        except ValueError as error:
+            return str(error) if rows() == 0 else None
+        return None
+
+    def session_client(role):
+        """A client signed in through the Flask session login as a new account of this role."""
+        uid = "zz_odin_" + role.lower()
+        with app.app_context():
+            db.session.add(User(name=uid, uid=uid, password=PASSWORD, role=role))
+            db.session.commit()
+            User.query.filter_by(_uid=uid).first().activate()
+        client = app.test_client()
+        signed_in = client.post("/login", data={"username": uid, "password": PASSWORD}).status_code == 302
+        return client if signed_in else None
+
+    # A database that has not been upgraded has no odin_site table
     with app.app_context():
         db.create_all()
-        anon = app.test_client()
+        OdinSite.__table__.drop(db.engine)
+    code, message = seed_site()
+    check("init_odin_site.py on a database without the table changes nothing and says to run db_upgrade.py",
+          code == 1 and "db_upgrade.py" in message, message)
+    with app.app_context():
+        db.create_all()
+        check("each column is as long as FIELDS says",
+              all(OdinSite.__table__.columns[key].type.length == size for key, size in FIELDS.items()))
 
-        r = anon.get(URL)
-        check("GET before the seed has run is a 404 with a message",
-              r.status_code == 404 and bool((r.get_json() or {}).get("message")), r.get_json())
+    anon = app.test_client()
+    r = anon.get(URL)
+    check("GET before the seed has run is a 404 with a message",
+          r.status_code == 404 and bool((r.get_json() or {}).get("message")), r.get_json())
 
-        for key in FIELDS:
-            check(f"a seed without {key} is refused", refused({k: v for k, v in seed.items() if k != key}))
-        check("a blank value is refused", refused({**seed, "phone": "   "}))
-        check("a value that is not text is refused", refused({**seed, "phone": 8053001100}))
-        check("a value longer than its column is refused", refused({**seed, "name": "x" * (FIELDS["name"] + 1)}))
-        check("a seed that is not an object is refused", refused([seed]))
+    for key in FIELDS:
+        check(f"a seed without {key} is refused, and the message names the file and {key}",
+              refusal({k: v for k, v in seed.items() if k != key}) == f"odin_site.json: {key} is required")
+    check("a blank value is refused", refusal({**seed, "phone": "   "}) == "odin_site.json: phone is required")
+    check("a value that is not text is refused", refusal({**seed, "phone": 8053001100}) == "odin_site.json: phone must be text")
+    check("a value longer than its column is refused",
+          refusal({**seed, "name": "x" * (FIELDS["name"] + 1)}) == f"odin_site.json: name must be at most {FIELDS['name']} characters")
+    check("a seed that is not an object is refused", (refusal([seed]) or "").startswith("odin_site.json: "))
+    check("a seed that is not valid JSON is refused, and the message names the file",
+          (refusal("{ not json") or "").startswith("odin_site.json: is not valid JSON"))
+    with app.app_context():
         values, error = OdinSite.validate({**seed, "name": "  " + seed["name"] + "  "})
-        check("spaces around a value are trimmed", error is None and values["name"] == seed["name"], error)
+    check("spaces around a value are trimmed", error is None and values["name"] == seed["name"], error)
 
-        check("the seed file is in model/dataconfigs/",
-              os.path.samefile(os.path.dirname(SEED_FILE), os.path.join(REPO, "model", "dataconfigs")), SEED_FILE)
-        check("the seed creates one row", initOdinSite() == 1 and OdinSite.query.count() == 1)
-        r = anon.get(URL)
-        body = r.get_json()
-        check("GET needs no login", r.status_code == 200, r.status_code)
-        check("GET returns exactly the keys in FIELDS", sorted(body) == sorted(FIELDS), body)
-        check("GET returns what odin_site.json holds", body == {key: seed[key] for key in FIELDS}, body)
+    accented = {**seed, "name": "Café ODIN"}
+    check("text that is not ASCII is saved and served as written",
+          run_seed(seed_file(json.dumps(accented, ensure_ascii=False))) == 1 and anon.get(URL).get_json()["name"] == "Café ODIN")
+    clear()
 
-        check("running the seed again creates nothing", initOdinSite() == 0 and OdinSite.query.count() == 1)
-        changed = seed_file({**seed, "name": "Another Name"})
-        check("a later seed file does not replace the saved row",
-              initOdinSite(changed) == 0 and anon.get(URL).get_json()["name"] == seed["name"])
+    check("the seed file is in model/dataconfigs/",
+          os.path.samefile(os.path.dirname(SEED_FILE), os.path.join(REPO, "model", "dataconfigs")), SEED_FILE)
+    code, message = seed_site()
+    check("init_odin_site.py seeds an empty table", code == 0 and rows() == 1, message)
+    code, message = seed_site()
+    check("init_odin_site.py run again changes nothing", code == 0 and rows() == 1 and "Nothing changed" in message, message)
+    clear()
 
-        for method in ("post", "put", "patch", "delete"):
-            r = getattr(anon, method)(URL, json={"name": "x"})
-            check(f"{method.upper()} is not allowed", r.status_code == 405, r.status_code)
-        check("a refused write changed nothing", anon.get(URL).get_json() == body)
+    # generate_data is a Flask command. standalone_mode=False makes it return here instead of exiting,
+    # and the other seeds print every account they create.
+    with app.app_context(), contextlib.redirect_stdout(io.StringIO()):
+        flask_main.generate_data(args=[], standalone_mode=False)
+    check("generate_data, which db_init.py runs, seeds the site row", rows() == 1)
+
+    r = anon.get(URL)
+    body = r.get_json()
+    check("GET needs no login", r.status_code == 200, r.status_code)
+    check("GET returns exactly the keys in FIELDS", sorted(body) == sorted(FIELDS), body)
+    check("GET returns what odin_site.json holds", body == {key: seed[key] for key in FIELDS}, body)
+
+    check("running the seed again creates nothing", run_seed() == 0 and rows() == 1)
+    changed = seed_file(json.dumps({**seed, "name": "Another Name"}))
+    check("a later seed file does not replace the saved row",
+          run_seed(changed) == 0 and anon.get(URL).get_json()["name"] == seed["name"])
+
+    for method in ("post", "put", "patch", "delete"):
+        r = getattr(anon, method)(URL, json={"name": "x"})
+        check(f"{method.upper()} is not allowed", r.status_code == 405, r.status_code)
+    check("a refused write changed nothing", anon.get(URL).get_json() == body)
+
+    # A guest may make only the requests its account type lists, and the public site is one of them
+    for role in account_types.guest_roles() + ("User",):
+        client = session_client(role)
+        check(f"a visitor signed in as a {role} still gets the site basics",
+              client is not None and client.get(URL).status_code == 200,
+              "could not sign in" if client is None else client.get(URL).get_json())
+    check("a signed-in client did not sign the next visitor in", app.test_client().get("/api/id").status_code == 401)
 
     real_after = sha256(REAL_DB) if os.path.exists(REAL_DB) else None
     check("the real dev database was not touched", real_before == real_after)

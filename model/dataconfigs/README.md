@@ -103,11 +103,19 @@ The basics every page of the ODIN Diagnostics website shows: `name`, `tagline`, 
 `address`. Each must be text that is not blank and fits its column; the sizes are `FIELDS` in
 `model/odin_site.py`.
 
-This file is a seed, so it is loaded differently from the files above. It is read when the database is
-set up (`scripts/db_init.py`, or `flask custom generate_data`), not at startup, and it fills the
-`odin_site` table only while that table is empty. `GET /api/odin/site` serves the saved row, so editing
-the file does not change a database that already has one. Bad data stops the seed with a message naming
-the file and the field (`odin_site.json: phone is required`).
+This file is a seed, so it is loaded differently from the files above. It is not read at startup. It
+fills the `odin_site` table only while that table is empty:
+
+- `scripts/db_init.py` seeds it when it builds or rebuilds a database, so a rebuild picks up an edited file.
+- `scripts/db_upgrade.py` adds the table to an existing database but does not seed it. Run
+  `python scripts/init_odin_site.py` afterwards. Until then `GET /api/odin/site` answers 404.
+
+`GET /api/odin/site` serves the saved row, so editing the file does not change a database that already
+has one. Bad data stops the seed with a message naming the file and the field
+(`odin_site.json: phone is required`).
+
+The route is also in the guest account type's `allowed_requests` in `account_types.json`, so a visitor
+who is signed in as a guest still gets the site's text.
 
 `python scripts/verify/verify_odin_site.py` checks the seed and the route.
 

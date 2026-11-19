@@ -10,8 +10,8 @@ api = Api(odin_api)
 
 class OdinAPI:
     """
-    What the ODIN Diagnostics website shows, read by its frontend. These routes are public on
-    purpose: a visitor has no account, and everything here is shown on the public site.
+    The ODIN Diagnostics site basics, for its frontend to read. This route is public on purpose:
+    a visitor has no account, and everything here is shown on the public site.
     """
 
     class _Site(Resource):  # The basics every page shows

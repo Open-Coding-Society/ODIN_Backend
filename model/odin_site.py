@@ -22,7 +22,7 @@ class OdinSite(db.Model):
     OdinSite Model
 
     What every page of the ODIN Diagnostics website shows: the company name, its tagline and how to
-    reach it. One row holds them, so the frontend keeps no website text of its own.
+    reach it. One row holds them, so the frontend reads them here instead of keeping a copy.
 
     Attributes:
         id (db.Column): The primary key.
@@ -31,11 +31,11 @@ class OdinSite(db.Model):
     __tablename__ = 'odin_site'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    tagline = db.Column(db.String(255), nullable=False)
-    phone = db.Column(db.String(40), nullable=False)
-    email = db.Column(db.String(255), nullable=False)
-    address = db.Column(db.String(255), nullable=False)
+    name = db.Column(db.String(FIELDS['name']), nullable=False)
+    tagline = db.Column(db.String(FIELDS['tagline']), nullable=False)
+    phone = db.Column(db.String(FIELDS['phone']), nullable=False)
+    email = db.Column(db.String(FIELDS['email']), nullable=False)
+    address = db.Column(db.String(FIELDS['address']), nullable=False)
 
     # Constructor: takes the checked values, one per key in FIELDS
     def __init__(self, values):
@@ -69,9 +69,13 @@ class OdinSite(db.Model):
         values = {}
         for key, max_len in FIELDS.items():
             value = inputs.get(key)
-            if not isinstance(value, str) or not value.strip():
+            if value is None:
                 return None, f"{key} is required"
+            if not isinstance(value, str):
+                return None, f"{key} must be text"
             value = value.strip()
+            if not value:
+                return None, f"{key} is required"
             if len(value) > max_len:
                 return None, f"{key} must be at most {max_len} characters"
             values[key] = value
@@ -83,9 +87,15 @@ def initOdinSite(path=SEED_FILE):
     Safe to run more than once."""
     if OdinSite.current():
         return 0
-    with open(path) as f:
-        values, error = OdinSite.validate(json.load(f))
+    name = os.path.basename(path)
+    try:
+        # utf-8 whatever the server's locale is, so accented text is not stored garbled
+        with open(path, encoding="utf-8") as f:
+            seed = json.load(f)
+    except ValueError as e:  # text that is not JSON, or not utf-8
+        raise ValueError(f"{name}: is not valid JSON ({e})")
+    values, error = OdinSite.validate(seed)
     if error:
-        raise ValueError(f"{os.path.basename(path)}: {error}")
+        raise ValueError(f"{name}: {error}")
     OdinSite(values).create()
     return 1
