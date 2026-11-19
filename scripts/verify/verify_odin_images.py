@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify /api/odin/image and the images in static/odin/ that the ODIN Diagnostics website shows.
+"""Verify /api/odin/image and the images in odin/images/ that the ODIN Diagnostics website shows.
 
 Runs the real app against a throwaway SQLite database and checksums the real dev DB
 before and after to prove it was never touched.
@@ -21,6 +21,9 @@ MAX_BYTES = 1024 * 1024  # a page loads several images, so each one stays small
 NAME = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*\.[a-z]+")
 CONTENT_TYPES = {".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
                  ".gif": "image/gif", ".webp": "image/webp"}
+# What an SVG must not hold: script in any form, or anything fetched from another site
+UNSAFE_SVG = re.compile(r"<(?:[\w-]+:)?script\b|\son\w+\s*=|<(?:[\w-]+:)?foreignObject\b|javascript:|@import"
+                        r"|(?:href|src)\s*=\s*[\"']\s*(?:https?:)?//|url\(\s*[\"']?\s*(?:https?:)?//", re.I)
 _failures = []
 
 
@@ -47,7 +50,7 @@ def main():
     import main  # noqa: F401  registers every model and blueprint
     from model import account_types
     from model.user import User
-    from model.odin_image import IMAGE_FOLDER, IMAGE_TYPES, image_file, is_image_name
+    from model.odin_image import IMAGE_FOLDER, IMAGE_TYPES, image_file, image_type, is_image_name
     app.config["TESTING"] = True
     with app.app_context():
         db.create_all()
@@ -66,13 +69,15 @@ def main():
 
     # The folder
     files = sorted(os.listdir(IMAGE_FOLDER))
-    images = [name for name in files if name != "README.md"]
-    check("static/odin/ holds images", len(images) > 0)
-    check("every file there besides the README is an image the route may serve",
-          all(is_image_name(name) for name in images), [name for name in images if not is_image_name(name)])
+    others = [name for name in files if name != "README.md" and not is_image_name(name)]
+    images = [name for name in files if is_image_name(name)]
+    check("odin/images/ holds images", len(images) > 0)
+    check("every file there besides the README is an image the route may serve", not others, others)
+    links = [name for name in files if os.path.islink(os.path.join(IMAGE_FOLDER, name))]
+    check("no file there is a link, which could point outside the folder", not links, links)
     check("every image name is lowercase words joined by hyphens",
           all(NAME.fullmatch(name) for name in images), [name for name in images if not NAME.fullmatch(name)])
-    check("the route's file types each have a content type here", sorted(CONTENT_TYPES) == sorted(IMAGE_TYPES))
+    check("each file type is sent as the content type browsers expect", dict(IMAGE_TYPES) == CONTENT_TYPES, IMAGE_TYPES)
     heavy = [name for name in images if os.path.getsize(os.path.join(IMAGE_FOLDER, name)) > MAX_BYTES]
     check("every image is under 1 MB", not heavy, heavy)
     with open(os.path.join(IMAGE_FOLDER, "README.md"), encoding="utf-8") as fh:
@@ -81,7 +86,7 @@ def main():
     for name in (n for n in images if n.endswith(".svg")):
         with open(os.path.join(IMAGE_FOLDER, name), encoding="utf-8") as fh:
             svg = fh.read()
-        unsafe = re.search(r"<script|\son\w+\s*=|<foreignObject|(?:href|src)\s*=\s*[\"'](?:https?:)?//", svg, flags=re.I)
+        unsafe = UNSAFE_SVG.search(svg)
         check(f"{name} holds no script and loads nothing from another site", unsafe is None, unsafe and unsafe.group(0))
 
     # The route
@@ -93,9 +98,17 @@ def main():
         check(f"{name} is served whole, with no login", same, r.status_code)
         kind = CONTENT_TYPES[os.path.splitext(name)[1]]
         check(f"{name} is sent as {kind}", r.headers.get("Content-Type", "").split(";")[0] == kind, r.headers.get("Content-Type"))
-        check(f"{name} cannot run script or be read as another type",
-              r.headers.get("X-Content-Type-Options") == "nosniff" and "sandbox" in r.headers.get("Content-Security-Policy", ""))
+        policy = r.headers.get("Content-Security-Policy", "")
+        check(f"{name} is sent with nosniff and a policy that allows no script",
+              r.headers.get("X-Content-Type-Options") == "nosniff" and "default-src 'none'" in policy
+              and "sandbox" in policy and "script-src" not in policy, policy)
     first = images[0]
+    for bad in ('<s:script xmlns:s="http://www.w3.org/2000/svg">x</s:script>', '<a href="javascript:x">', "<style>@import url(a.css)</style>",
+                '<image href="https://example.com/a.png"/>', '<rect onload="x()"/>', "<rect style=\"fill:url(//example.com/a)\"/>"):
+        check(f"the SVG scan catches {bad[:32]}", UNSAFE_SVG.search(bad) is not None)
+    cache = anon.get(URL, query_string={"name": first}).headers.get("Cache-Control", "")
+    check("an image may stay in the browser's cache for an hour", "max-age=3600" in cache, cache)
+    check("image_type gives the type for a name in capitals too", image_type("A.WEBP") == "image/webp")
     etag = anon.get(URL, query_string={"name": first}).headers.get("ETag")
     r = anon.get(URL, query_string={"name": first}, headers={"If-None-Match": etag or ""})
     check("an image the browser already has is not sent again (304)", bool(etag) and r.status_code == 304, r.status_code)
@@ -110,6 +123,12 @@ def main():
         check(f"the name {name!r} is a 404 with a message",
               r.status_code == 404 and bool((r.get_json() or {}).get("message")), f"{r.status_code} {r.data[:40]!r}")
     check("a path escape written with %2F is refused too", anon.get(URL + "?name=..%2Fmain.py").status_code == 404)
+    for path in (f"/static/odin/{first}", f"/static/odin/images/{first}", f"/uploads/odin/{first}", "/static/odin/README.md"):
+        check(f"the route is the only address: {path} is a 404", anon.get(path).status_code == 404)
+    embedded = [n for n in images if n.endswith(".svg") and "data:image/" in open(os.path.join(IMAGE_FOLDER, n), encoding="utf-8").read()]
+    for name in embedded:
+        policy = anon.get(URL, query_string={"name": name}).headers.get("Content-Security-Policy", "")
+        check(f"{name} may show the pictures embedded in it when opened on its own", "img-src data:" in policy, policy)
     check("image_file gives no path for a name outside the folder",
           image_file("../main.py") is None and image_file("README.md") is None and image_file(first) is not None)
 

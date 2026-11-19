@@ -1,6 +1,6 @@
 from flask import Blueprint, request, send_from_directory
 from flask_restful import Api, Resource # used for REST API building
-from model.odin_image import IMAGE_FOLDER, image_file
+from model.odin_image import IMAGE_FOLDER, image_file, image_type
 from model.odin_site import OdinSite
 
 odin_api = Blueprint('odin_api', __name__,
@@ -31,11 +31,14 @@ class OdinAPI:
                 return {'message': 'Give the image name, as in ?name=logo-dark.svg'}, 400
             if image_file(name) is None:
                 return {'message': 'No ODIN image has that name.'}, 404
-            response = send_from_directory(IMAGE_FOLDER, name)
-            # An SVG opened on its own could run script as this server. These headers stop that, and
-            # stop a browser from treating any image as another kind of file.
+            # An hour in the browser's cache: a page shows several images, and without it every view
+            # asks for each one again, which also uses up a guest's requests for the minute.
+            response = send_from_directory(IMAGE_FOLDER, name, mimetype=image_type(name), max_age=3600)
+            # An SVG opened on its own address is a page of this server, and a script in one would run
+            # with a signed-in visitor's login. The policy lets it draw (its own styles and the pictures
+            # embedded in it) and nothing else, and nosniff keeps each file the type its name says.
             response.headers['X-Content-Type-Options'] = 'nosniff'
-            response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+            response.headers['Content-Security-Policy'] = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox"
             return response
 
     # building RESTapi endpoint
