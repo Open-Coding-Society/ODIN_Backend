@@ -149,8 +149,12 @@ holds and its size:
 - Text: `kicker` (the short line above the title), `title`, `text` and `action` (the words on the
   section's button; where the button leads is up to the page).
 - `image` names a file in `odin/images/`, and `image_alt` says what it shows. Give both or neither.
+- `link` is the other site the section's image leads to. It must be a full `https://` address.
 - `items` is a list for a section that shows several of one thing, such as statistics or features.
-  Each item needs a `title` and a `text`. Leave `items` out of a section that has no list.
+  Each item needs a `title` and one of two things under it: `text` of its own, or `field`, the
+  name of the site basic it shows (`phone`, for example). The contact details use `field`, so the
+  phone number, email and address are kept in one place, `odin_site.json`. Leave `items` out of a
+  section that has no list.
 
 A section needs a title, text, an image or items. A part that is not listed here is refused, so a
 misspelled one is not dropped without a word. So is a key given twice in one object.
@@ -179,9 +183,13 @@ To change wording a database already holds, change it in the file and in the sav
 update). Bad data stops the seed with a message naming the file, the page and the section by its
 place on the page (`odin_pages.json: home section 2: item 1: text is required`).
 
+The `contact` page holds the block that the home page and the Contact Us page both show: its
+`details` section has the heading, the labels and the partner logo.
+
 `GET /api/odin/page?name=<page>` sends `{"page": ..., "sections": [...]}`. Each section has its
 `name`, every part in `FIELDS` (`null` for one it has nothing for) and its `items` (an empty list
-when it has none). The route is public and is in the guest account type's `allowed_requests`, like
+when it has none). Each item has `title`, `text` and `field`, with `null` for the one it does not
+use. The route is public and is in the guest account type's `allowed_requests`, like
 the site basics. `python scripts/verify/verify_odin_pages.py` checks the seed and the route.
 
 ## What the sign-up page is told

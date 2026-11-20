@@ -47,5 +47,24 @@
       "title": "FDA Clearance",
       "text": "This device is an investigational product and has not yet been cleared or approved by the U.S. Food and Drug Administration. It is currently being offered for research use only and is not yet intended to diagnose, treat, cure, or prevent any disease."
     }
+  ],
+  "contact": [
+    {
+      "name": "intro",
+      "title": "Contact Us",
+      "text": "Please reach out regarding any questions about our product or company"
+    },
+    {
+      "name": "details",
+      "title": "Contact Us",
+      "image": "partner-evonexus.png",
+      "image_alt": "EvoNexus",
+      "link": "https://evonexus.org/",
+      "items": [
+        { "title": "Phone:", "field": "phone" },
+        { "title": "Email:", "field": "email" },
+        { "title": "Address:", "field": "address" }
+      ]
+    }
   ]
 }

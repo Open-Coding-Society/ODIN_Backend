@@ -8,6 +8,11 @@ Accept: application/json
 GET {{baseUrl}}/api/odin/page?name=home
 Accept: application/json
 
+### Read the contact block - expect 200, with an intro section and a details section whose items
+### each name the site basic they show (phone, email, address)
+GET {{baseUrl}}/api/odin/page?name=contact
+Accept: application/json
+
 ### Ask for a page that does not exist - expect 404 and a message
 GET {{baseUrl}}/api/odin/page?name=missing
 Accept: application/json
