@@ -398,6 +398,10 @@ def main():
     check("the team has its four people, each with a name, role, degrees, bio and profile link",
           len(team) == TEAM_SIZE and all({"title", "subtitle", "note", "text", "link"} <= set(person) for person in team), team)
     check("a person's photo always comes with what it shows", all(("image" in person) == ("image_alt" in person) for person in team))
+    # The frontend's About page shows the mission beside a photo, and shows nothing when it is missing
+    mission = next(section for section in about if section["name"] == "mission")
+    check("the mission comes with the photo the site shows beside it, and what the photo shows",
+          bool(mission["image"]) and bool(mission["image_alt"]), mission)
     for page, sections in seed.items():
         check(f"GET for the {page} page returns what the file holds for it",
               served(page) == {"page": page, "sections": [as_served(section) for section in sections]}, served(page))

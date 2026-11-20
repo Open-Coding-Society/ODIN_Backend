@@ -169,7 +169,8 @@ LinkedIn profile the `link`. Two lines in a `note` have a line break between the
 `team` is the word on the control that opens a bio. The seed has no words for a person's `link`,
 because the current site shows only an icon there. Connor Heffler has no `image` yet. His photo is
 held back until ODIN confirms it can be used; see `odin/images/README.md`. The team's names and
-bios are site content every visitor sees, so they are kept here.
+bios came from the current site, so they are kept here. The rebuilt site's About page does not show
+the team (ODIN_Frontend issue 21); the section stays until the team decides whether to remove it.
 
 The `contact` page has five sections. `intro` is the Contact Us page's title and the line under it.
 `details` is the block the home page and the Contact Us page both show: its heading and the partner
