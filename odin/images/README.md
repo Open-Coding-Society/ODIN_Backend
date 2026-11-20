@@ -47,7 +47,10 @@ Size and file type. The hero photo also has a thin line trimmed from its top and
 - Connor Heffler's photo is not here yet. The file on the current site
   (`/images/about/connor_heffler_square.JPG`) is marked "Photo by Ruby Wallau for
   CIE", copyright Ruby Wallau 2024. It can be added once ODIN confirms that the
-  photographer's permission covers this site, with the credit kept.
+  photographer's permission covers this site, with the credit kept. When it is
+  added to his item in `odin_pages.json`, a database that already has the team
+  keeps its saved list: see "odin_pages.json" in `model/dataconfigs/README.md`
+  for how to bring that list up to date.
 - Two images on the current site are left out. `logo-2.svg` is a leftover logo
   from a website template, not ODIN's. `download (1).png` is a LinkedIn icon.
 

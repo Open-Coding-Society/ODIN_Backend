@@ -22,6 +22,9 @@ URL = "/api/odin/page"
 HOME = URL + "?name=home"
 # The home page's sections, in the order the current site shows them
 HOME_ORDER = ["hero", "statistics", "features", "how_it_works", "pitch", "fda"]
+# The About page's sections, in the same way, and how many people its team has
+ABOUT_ORDER = ["intro", "mission", "team"]
+TEAM_SIZE = 4
 FILE = "odin_pages.json: "
 _failures = []
 
@@ -59,7 +62,7 @@ def main():
     import init_odin_site
     from model import account_types
     from model.user import User
-    from model.odin_section import OdinSection, initOdinSections, FIELDS, ITEM_FIELDS, ITEM_OPTIONAL_FIELDS, NAME_MAX, SEED_FILE
+    from model.odin_section import OdinSection, initOdinSections, FIELDS, ITEM_REQUIRED_FIELDS, ITEM_OPTIONAL_FIELDS, NAME_MAX, SEED_FILE
     app.config["TESTING"] = True
 
     with open(SEED_FILE, encoding="utf-8") as fh:
@@ -117,6 +120,14 @@ def main():
     def refused(label, content, expected):
         got = refusal(content)
         check(label, got == expected, got)
+
+    def accepted(content):
+        """What seeding this content wrote, or the refusal as text, so a check that expects it to be
+        accepted fails with the reason and the script carries on."""
+        try:
+            return run_seed(content)
+        except ValueError as error:
+            return f"refused: {error}"
 
     def served(page="home"):
         return app.test_client().get(f"{URL}?name={page}").get_json()
@@ -272,7 +283,7 @@ def main():
     refused("an item that is not an object is refused", with_section("statistics", items=[item, "50%"]), stats + "item 2 must be a JSON object")
     refused("a part an item does not have is refused",
             with_section("statistics", items=[{**item, "value": "50%"}]), stats + "item 1: an item has no part named value")
-    for key, (kind, size) in ITEM_FIELDS.items():
+    for key, (kind, size) in ITEM_REQUIRED_FIELDS.items():
         without = {k: v for k, v in item.items() if k != key}
         refused(f"an item without {key} is refused", with_section("statistics", items=[item, without]), stats + f"item 2: {key} is required")
         refused(f"an item whose {key} is not text is refused",
@@ -301,11 +312,26 @@ def main():
     person = {"title": "A PERSON", "subtitle": "Their role", "note": "First degree\nSecond degree", "text": "About them.",
               "image": "product-headset.jpg", "image_alt": "A person, their role", "link": "https://profiles.example/a-person"}
     check("an item is saved and served with the parts it was given, and no others",
-          run_seed({"home": [{"name": "team", "items": [person, item]}]}) == ["home.team"]
+          accepted({"home": [{"name": "team", "items": [person, item]}]}) == ["home.team"]
           and served()["sections"][0]["items"] == [person, item])
     clear()
     check("an item can have a link and no image, as a person without a photo does",
-          run_seed({"home": [{"name": "team", "items": [{"title": "A PERSON", "text": "About them.", "link": "https://profiles.example/a-person"}]}]}) == ["home.team"])
+          accepted({"home": [{"name": "team", "items": [{"title": "A PERSON", "text": "About them.", "link": "https://profiles.example/a-person"}]}]}) == ["home.team"])
+    clear()
+    padded = {**person, "subtitle": "  Their role  ", "note": "\n First degree\nSecond degree \n", "image_alt": " A person, their role ", "link": " https://profiles.example/a-person "}
+    check("spaces around an item's other parts are trimmed, and a line break inside a note is kept",
+          accepted({"home": [{"name": "team", "items": [padded]}]}) == ["home.team"] and served()["sections"][0]["items"] == [person])
+    clear()
+    check("a part of an item given as null is left out, the same as one not given",
+          accepted({"home": [{"name": "team", "items": [{**item, "subtitle": None, "image": None, "image_alt": None}]}]}) == ["home.team"]
+          and served()["sections"][0]["items"] == [item])
+    clear()
+    refused("an item whose other part is empty text is refused, not dropped",
+            with_section("statistics", items=[{**item, "subtitle": ""}]), stats + "item 1: subtitle must not be blank")
+    for label, bad in (("a NUL", "a\u0000b"), ("an escape character", "a\u001bb"), ("a character that turns the text around", "a\u202eb"), ("a carriage return", "a\rb")):
+        refused(f"text with {label} in it is refused", with_section("statistics", items=[{**item, "note": bad}]),
+                stats + "item 1: note has a character that does not show, such as a control character")
+    check("text with a tab in it is accepted", accepted({"home": [{"name": "team", "items": [{**item, "note": "one\ttwo"}]}]}) == ["home.team"])
     clear()
 
     # All or nothing
@@ -366,6 +392,12 @@ def main():
     check("GET returns what odin_pages.json holds, with null for a part a section does not have",
           body["sections"] == [as_served(section) for section in seed["home"]], body)
     check("a section without a list has an empty list of items", body["sections"][place("hero") - 1]["items"] == [])
+    about = served("about")["sections"]
+    team = about[-1]["items"]
+    check("the About page's sections come in the order the current site shows them", [section["name"] for section in about] == ABOUT_ORDER, about)
+    check("the team has its four people, each with a name, role, degrees, bio and profile link",
+          len(team) == TEAM_SIZE and all({"title", "subtitle", "note", "text", "link"} <= set(person) for person in team), team)
+    check("a person's photo always comes with what it shows", all(("image" in person) == ("image_alt" in person) for person in team))
     for page, sections in seed.items():
         check(f"GET for the {page} page returns what the file holds for it",
               served(page) == {"page": page, "sections": [as_served(section) for section in sections]}, served(page))
@@ -435,6 +467,12 @@ def main():
         section.image, section.image_alt = pictured["image"], pictured["image_alt"]
         db.session.commit()
     check("the link checks left the home page as the file has it", served() == body)
+
+    # A saved list is one part: a change to an item in the file does not reach it
+    listed = seed["home"][place("statistics") - 1]
+    changed_items = [{**listed["items"][0], "subtitle": "Added later"}, *listed["items"][1:], {"title": "New", "text": "A new item"}]
+    written = run_seed(with_section("statistics", items=changed_items))
+    check("a saved list is left as it is when the file's list changes", written == [] and served() == body, written)
 
     # Parts with nothing in them
     with app.app_context():

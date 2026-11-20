@@ -8,8 +8,9 @@ Accept: application/json
 GET {{baseUrl}}/api/odin/page?name=home
 Accept: application/json
 
-### Read the About page - expect 200 and three sections: intro, mission and team, the team's items
-### each a person with a title, subtitle, note, text and link
+### Read the About page - expect 200 and three sections: intro, mission and team. Each item of team
+### is a person with a title, subtitle, note, text and link, and an image with its image_alt when
+### there is a photo
 GET {{baseUrl}}/api/odin/page?name=about
 Accept: application/json
 

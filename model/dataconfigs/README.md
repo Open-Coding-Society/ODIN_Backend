@@ -153,17 +153,23 @@ holds and its size:
   `https://` address, and a section with a `link` needs an `image`.
 - `items` is a list for a section that shows several of one thing, such as statistics, features
   or the people on the team. Each item needs a `title` and a `text`. It can also have a `subtitle`
-  (a line under the title, such as a role), a `note` (a second line, such as a degree), an `image`
-  with its `image_alt`, and a `link` to another site, such as a profile. An item is saved and sent
-  with only the parts it was given. Leave `items` out of a section that has no list.
+  (a line under the title, such as a role), a `note` (a short line of facts, such as degrees), an
+  `image` with its `image_alt`, and a `link` to another site, such as a profile. An item's `link`
+  needs no `image`. An item is saved and sent with only the parts it was given.
+  `ITEM_REQUIRED_FIELDS` and `ITEM_OPTIONAL_FIELDS` list the parts and their sizes. Leave `items`
+  out of a section that has no list.
 
 A section needs a title, text, an image or items. A part that is not listed here is refused, so a
 misspelled one is not dropped without a word. So is a key given twice in one object.
 
 The `about` page has three sections: `intro` (the page's title), `mission` (its paragraphs, with a
 blank line between them) and `team`. Each person on the team is an item: the name is the `title`,
-the role the `subtitle`, the degree the `note` and the bio the `text`. `action` on `team` is the
-word on the control that opens a bio. A person without a photo has no `image`.
+the role the `subtitle`, the degrees the `note`, the bio the `text`, the photo the `image` and the
+LinkedIn profile the `link`. Two lines in a `note` have a line break between them. `action` on
+`team` is the word on the control that opens a bio. The seed has no words for a person's `link`,
+because the current site shows only an icon there. Connor Heffler has no `image` yet. His photo is
+held back until ODIN confirms it can be used; see `odin/images/README.md`. The team's names and
+bios are site content every visitor sees, so they are kept here.
 
 The `contact` page has five sections. `intro` is the Contact Us page's title and the line under it.
 `details` is the block the home page and the Contact Us page both show: its heading and the partner
@@ -186,6 +192,10 @@ or none:
 - A section it already has keeps its saved text. Only its empty parts are filled in. So a part
   added to the file later reaches the database, but changing wording in the file does not change
   text that is already saved.
+- A section's `items` are one part. A saved list is left as it is, so a change to one item in the
+  file, such as a photo for a person who had none, does not reach a database that already has the
+  list. To bring a saved list up to date, set that row's `items` to `[]` and run
+  `python scripts/init_odin_site.py`, which fills the list again from the file.
 - The file decides the order of a page's sections.
 - A section that was removed from the file, or renamed in it, stays in the database and on the
   page. Delete its row to take it off.

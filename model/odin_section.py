@@ -25,9 +25,9 @@ FIELDS = {
     'link': (LINK, 255),       # the address of another site, which the section's image leads to
 }
 
-# The parts every item in a section's list has, such as one statistic, one feature or one person
-# on the team. Both are required.
-ITEM_FIELDS = {
+# The parts every item has. An item is one thing in a section's list, such as a statistic, a
+# feature or a person on the team. Both parts are required.
+ITEM_REQUIRED_FIELDS = {
     'title': (TEXT, 100),
     'text': (TEXT, 2000),
 }
@@ -35,7 +35,7 @@ ITEM_FIELDS = {
 # The parts an item can also have. An item is saved with only the parts it was given.
 ITEM_OPTIONAL_FIELDS = {
     'subtitle': (TEXT, 255),   # a line under the title, such as a person's role
-    'note': (TEXT, 255),       # a second line under it, such as a degree
+    'note': (TEXT, 255),       # a short line of facts about the item, such as a person's degrees
     'image': (IMAGE, 100),
     'image_alt': (TEXT, 255),
     'link': (LINK, 255),       # the address of another site about the item, such as a profile
@@ -60,7 +60,7 @@ class OdinSection(db.Model):
         name (db.Column): The section's name, which no other section of the page has, such as hero.
         position (db.Column): Where the section comes on its page, counting from 0.
         kicker ... link (db.Column): One column per key in FIELDS.
-        items (db.Column): The section's list. Each item holds the keys in ITEM_FIELDS, and those
+        items (db.Column): The section's list. Each item holds the keys in ITEM_REQUIRED_FIELDS, and those
             of ITEM_OPTIONAL_FIELDS it was given.
     """
     __tablename__ = 'odin_section'
@@ -118,6 +118,8 @@ class OdinSection(db.Model):
         filled = [key for key in missing if values[key] is not None]
         for key in filled:
             setattr(self, key, values[key])
+        # A list is one part: it is filled whole when the section has none, and left as it is
+        # once saved, so a change to one item in the file does not reach it.
         if not self.items and values['items']:
             self.items = values['items']
             filled.append('items')
@@ -194,13 +196,13 @@ def _checked_items(items):
     for number, item in enumerate(items, start=1):
         if not isinstance(item, dict):
             return None, f"item {number} must be a JSON object"
-        unknown = sorted(set(item) - {*ITEM_FIELDS, *ITEM_OPTIONAL_FIELDS})
+        unknown = sorted(set(item) - {*ITEM_REQUIRED_FIELDS, *ITEM_OPTIONAL_FIELDS})
         if unknown:
             return None, f"item {number}: an item has no part named {unknown[0]}"
         values = {}
-        for key, (kind, max_len) in {**ITEM_FIELDS, **ITEM_OPTIONAL_FIELDS}.items():
+        for key, (kind, max_len) in {**ITEM_REQUIRED_FIELDS, **ITEM_OPTIONAL_FIELDS}.items():
             if item.get(key) is None:
-                if key in ITEM_FIELDS:
+                if key in ITEM_REQUIRED_FIELDS:
                     return None, f"item {number}: {key} is required"
                 continue
             values[key], problem = checked_value(item[key], kind, max_len)

@@ -57,6 +57,11 @@ def checked_value(value, kind, max_len):
         value.encode("utf-8")
     except UnicodeEncodeError:  # half of a character pair, which a \u escape in the file can leave
         return None, "has a broken character that cannot be saved"
+    # In plain text a line break or a tab is the only character that may not show. A control
+    # character, or one that turns the text's direction around, has no place in what a visitor
+    # reads. A link and an image name have stricter checks of their own below.
+    if kind == TEXT and any(not c.isprintable() and c not in "\n\t" for c in value):
+        return None, "has a character that does not show, such as a control character"
     if kind == LINK and not _is_https_link(value):
         return None, "must be a full https link, such as https://example.com/page"
     if kind == IMAGE and image_file(value) is None:
