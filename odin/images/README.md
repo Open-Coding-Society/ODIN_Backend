@@ -5,13 +5,14 @@ keeps no copy: a page loads each one from `GET /api/odin/image?name=<file name>`
 This folder is outside `static/`, so that route is the only address they have.
 
 Each file comes from an image on <https://odin-diagnostics.com/>, used with ODIN's
-agreement. The two logos are the original files. The other six are smaller
+agreement. The two logos are the original files. The other seven are smaller
 copies, because the originals are between 1 and 4 MB each.
 
 | File | From the current site | Shows |
 | --- | --- | --- |
 | `logo-dark.svg` | `/images/logo/Odin-With-Text-Black.svg` | The ODIN mark and name in black, for light backgrounds |
 | `logo-light.svg` | `/images/logo/Odin-With-Text-White.svg` | The ODIN name in white with the mark in black |
+| `hero-headset-lens.webp` | `/images/hero/vr_green.png` | A close view of a headset lens in green light, the picture behind the top of the home page |
 | `product-headset.jpg` | `/images/capabilities/V3_ODIN2.jpg` | The ODIN headset |
 | `eye-tracking.webp` | `/images/eyetracking/EyeOpen.gif` | A short loop of two eyes opening |
 | `team-marina-zellers.webp` | `/images/about/marina_zellers.jpeg` | Marina Zellers |
@@ -21,8 +22,11 @@ copies, because the originals are between 1 and 4 MB each.
 
 ## What was changed
 
-Only size and file type.
+Only size and file type, and one stray line trimmed from the hero photo.
 
+- The hero photo is 1920 pixels wide. The original has a thin white line along its top and
+  bottom edges, left over from how it was saved. Two rows of pixels are trimmed from the top
+  and six from the bottom, out of 2820, so the line is gone.
 - The headset photo is 1600 pixels wide and the team photos are 640 pixels square.
 - The team photos came round, with clear corners. Their files on the site are
   PNG images named `.jpeg`. They are WebP here, which keeps the clear corners at
@@ -33,6 +37,9 @@ Only size and file type.
 
 ## Things to know
 
+- The hero photo's original file names no photographer and no license. It is here on
+  ODIN's agreement that the site's images may be reused. If it came from a stock
+  library, ODIN should check that its license covers this site.
 - `logo-light.svg` is ODIN's own file, and its mark is black, so on a dark
   background only the name shows clearly. Ask ODIN for a version with a white mark.
 - Connor Heffler's photo is not here yet. The file on the current site

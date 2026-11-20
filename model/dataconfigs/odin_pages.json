@@ -5,7 +5,9 @@
       "kicker": "Introducing",
       "title": "ODIN™",
       "text": "AI-powered eye-tracking technology for rapid, non-invasive concussion assessments.",
-      "action": "Contact Us!"
+      "action": "Contact Us!",
+      "image": "hero-headset-lens.webp",
+      "image_alt": "A close view of a headset lens in green light"
     },
     {
       "name": "statistics",
