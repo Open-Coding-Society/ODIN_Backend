@@ -1,16 +1,11 @@
 """ ODIN site basics """
-import json
 import os
-from urllib.parse import urlsplit
 
 from __init__ import db
-from model.odin_image import image_file
+from model.odin_seed import IMAGE, LINK, TEXT, checked_value, load_seed
 
 # The text the website starts with. It is data, so changing the site's wording never means editing code.
 SEED_FILE = os.path.join(os.path.dirname(__file__), "dataconfigs", "odin_site.json")
-
-# What a field holds: plain text, a link to another site, or the name of a file in odin/images/
-TEXT, LINK, IMAGE = 'text', 'link', 'image'
 
 # JSON key (also the column name): (what it holds, max string length)
 FIELDS = {
@@ -94,42 +89,20 @@ class OdinSite(db.Model):
 
     @staticmethod
     def validate(inputs):
-        """(values, error) from the seed's JSON. Every key in FIELDS must be text that is not blank and
-        fits its column, because MySQL refuses what SQLite would quietly store. A link must be a full
-        https address and an image must be a file in odin/images/, so the seed refuses one a page
-        could not use."""
+        """(values, error) from the seed's JSON. Every key in FIELDS is required, and must pass the
+        check for what it holds (checked_value in model/odin_seed.py)."""
         if not isinstance(inputs, dict):
             return None, "the site basics must be a JSON object"
         values = {}
         for key, (kind, max_len) in FIELDS.items():
             value = inputs.get(key)
-            if value is None:
+            if value is None or (isinstance(value, str) and not value.strip()):
                 return None, f"{key} is required"
-            if not isinstance(value, str):
-                return None, f"{key} must be text"
-            value = value.strip()
-            if not value:
-                return None, f"{key} is required"
-            if len(value) > max_len:
-                return None, f"{key} must be at most {max_len} characters"
-            if kind == LINK and not _is_https_link(value):
-                return None, f"{key} must be a full https link, such as https://example.com/page"
-            if kind == IMAGE and image_file(value) is None:
-                return None, f"{key} must name an image in odin/images/"
+            value, problem = checked_value(value, kind, max_len)
+            if problem:
+                return None, f"{key} {problem}"
             values[key] = value
         return values, None
-
-
-def _is_https_link(value):
-    """True for an https address that names a site, with no sign-in part and no character that
-    could end the address early where a page puts it."""
-    if not value.isprintable() or any(c.isspace() or c in '"\'<>\\' for c in value):
-        return False
-    try:
-        parts = urlsplit(value)
-    except ValueError:
-        return False
-    return parts.scheme == 'https' and bool(parts.hostname) and '@' not in parts.netloc
 
 
 def initOdinSite(path=SEED_FILE):
@@ -140,18 +113,9 @@ def initOdinSite(path=SEED_FILE):
     site = OdinSite.current()
     if site is not None and not site.missing():
         return []
-    name = os.path.basename(path)
-    try:
-        # utf-8 whatever the server's locale is, so accented text is not stored garbled
-        with open(path, encoding="utf-8") as f:
-            seed = json.load(f)
-    except OSError as e:
-        raise ValueError(f"{name}: cannot be read ({e.strerror})")
-    except ValueError as e:  # text that is not JSON, or not utf-8
-        raise ValueError(f"{name}: is not valid JSON ({e})")
-    values, error = OdinSite.validate(seed)
+    values, error = OdinSite.validate(load_seed(path))
     if error:
-        raise ValueError(f"{name}: {error}")
+        raise ValueError(f"{os.path.basename(path)}: {error}")
     if site is None:
         OdinSite(values).create()
         return list(FIELDS)
