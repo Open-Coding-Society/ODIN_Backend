@@ -149,24 +149,27 @@ holds and its size:
 - Text: `kicker` (the short line above the title), `title`, `text` and `action` (the words on the
   section's button; where the button leads is up to the page).
 - `image` names a file in `odin/images/`, and `image_alt` says what it shows. Give both or neither.
-- `link` is the other site the section's image leads to. It must be a full `https://` address.
+- `link` is the address of another site, which the section's image leads to. It must be a full
+  `https://` address, and a section with a `link` needs an `image`.
 - `items` is a list for a section that shows several of one thing, such as statistics or features.
-  Each item needs a `title` and one of two things under it: `text` of its own, or `field`, the
-  name of the site basic it shows (`phone`, for example). The contact details use `field`, so the
-  phone number, email and address are kept in one place, `odin_site.json`. Leave `items` out of a
-  section that has no list.
+  Each item needs a `title` and a `text`. Leave `items` out of a section that has no list.
 
 A section needs a title, text, an image or items. A part that is not listed here is refused, so a
 misspelled one is not dropped without a word. So is a key given twice in one object.
 
+The `contact` page has five sections. `intro` is the Contact Us page's title and the line under it.
+`details` is the block the home page and the Contact Us page both show: its heading and the partner
+logo with its link. `phone`, `email` and `address` each hold the label for the site basic of the
+same name. The number, the email and the address themselves stay in `odin_site.json`.
+
 Like `odin_site.json`, this file is a seed. It is not read at startup:
 
 - `scripts/db_init.py` seeds it when it builds or rebuilds a database.
-- `scripts/db_upgrade.py` adds the `odin_section` table to an existing database but does not seed
-  it. Run `python scripts/init_odin_site.py` afterwards. Until then `GET /api/odin/page?name=home`
-  answers 404.
-- After deploying this code, run `db_upgrade.py` right away. Until the table exists the route
-  answers 500, as any query of a missing table does.
+- `scripts/db_upgrade.py` adds the `odin_section` table, or a column added later, to an existing
+  database but does not seed it. Run `python scripts/init_odin_site.py` afterwards. Until then
+  `GET /api/odin/page` answers 404 for a page whose sections are not saved yet.
+- After deploying code that adds the table or a part, run `db_upgrade.py` right away. Until the
+  table and every column exist the route answers 500 for every page.
 
 Seeding again is safe. The whole file is checked before anything is saved. Then all of it is saved,
 or none:
@@ -183,13 +186,9 @@ To change wording a database already holds, change it in the file and in the sav
 update). Bad data stops the seed with a message naming the file, the page and the section by its
 place on the page (`odin_pages.json: home section 2: item 1: text is required`).
 
-The `contact` page holds the block that the home page and the Contact Us page both show: its
-`details` section has the heading, the labels and the partner logo.
-
 `GET /api/odin/page?name=<page>` sends `{"page": ..., "sections": [...]}`. Each section has its
 `name`, every part in `FIELDS` (`null` for one it has nothing for) and its `items` (an empty list
-when it has none). Each item has `title`, `text` and `field`, with `null` for the one it does not
-use. The route is public and is in the guest account type's `allowed_requests`, like
+when it has none). The route is public and is in the guest account type's `allowed_requests`, like
 the site basics. `python scripts/verify/verify_odin_pages.py` checks the seed and the route.
 
 ## What the sign-up page is told

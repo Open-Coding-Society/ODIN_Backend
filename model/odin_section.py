@@ -3,7 +3,6 @@ import os
 import re
 
 from __init__ import db
-from model import odin_site
 from model.odin_seed import IMAGE, LINK, TEXT, checked_value, load_seed
 
 # The sections each page of the website starts with. They are data, so the wording a new database
@@ -23,19 +22,14 @@ FIELDS = {
     'action': (TEXT, 100),     # the words on the section's button
     'image': (IMAGE, 100),
     'image_alt': (TEXT, 255),  # what the image shows, for a visitor who cannot see it
-    'link': (LINK, 255),       # the other site the section's image leads to
+    'link': (LINK, 255),       # the address of another site, which the section's image leads to
 }
 
-# The parts of one item in a section's list, such as one statistic or one feature. An item has a
-# title and one of two things under it: text of its own, or `field`, the name of the site basic it
-# shows. A contact detail uses `field`, so the phone number is kept in one place.
+# The parts of one item in a section's list, such as one statistic or one feature. Both are required.
 ITEM_FIELDS = {
     'title': (TEXT, 100),
     'text': (TEXT, 500),
 }
-SITE_FIELD = 'field'
-# The site basics an item can show: the ones that are plain text
-SITE_TEXT_FIELDS = [key for key, (kind, max_len) in odin_site.FIELDS.items() if kind == TEXT]
 
 
 def is_name(value):
@@ -56,7 +50,7 @@ class OdinSection(db.Model):
         name (db.Column): The section's name, which no other section of the page has, such as hero.
         position (db.Column): Where the section comes on its page, counting from 0.
         kicker ... link (db.Column): One column per key in FIELDS.
-        items (db.Column): The section's list, each item holding the keys in ITEM_FIELDS and SITE_FIELD.
+        items (db.Column): The section's list, each item holding the keys in ITEM_FIELDS.
     """
     __tablename__ = 'odin_section'
     __table_args__ = (db.UniqueConstraint('page', 'name', name='uq_odin_section_page_name'),)
@@ -72,6 +66,7 @@ class OdinSection(db.Model):
     action = db.Column(db.String(FIELDS['action'][1]), nullable=True)
     image = db.Column(db.String(FIELDS['image'][1]), nullable=True)
     image_alt = db.Column(db.String(FIELDS['image_alt'][1]), nullable=True)
+    # Added after the table existed. It allows NULL like the rest, so db_upgrade.py can add it in place.
     link = db.Column(db.String(FIELDS['link'][1]), nullable=True)
     items = db.Column(db.JSON, nullable=False)
 
@@ -87,13 +82,11 @@ class OdinSection(db.Model):
     def __repr__(self):
         return f"OdinSection(id={self.id}, page={self.page}, name={self.name})"
 
-    # CRUD read: the name, every key in FIELDS (None for a part the section has nothing for) and the
-    # items, each with the same keys whenever it was saved
+    # CRUD read: the name, every key in FIELDS (None for a part the section has nothing for) and the items
     def read(self):
         missing = self.missing()
         parts = {key: None if key in missing else getattr(self, key) for key in FIELDS}
-        items = [{key: item.get(key) for key in (*ITEM_FIELDS, SITE_FIELD)} for item in self.items or []]
-        return {'name': self.name, **parts, 'items': items}
+        return {'name': self.name, **parts, 'items': self.items or []}
 
     def missing(self):
         """The parts this section has nothing for: NULL, empty or only spaces."""
@@ -107,6 +100,10 @@ class OdinSection(db.Model):
         # filled only if the file still names the saved image.
         if ('image' in missing) != ('image_alt' in missing) and self.image != values['image']:
             missing = [key for key in missing if key not in ('image', 'image_alt')]
+        # A link belongs to its image too: it is filled only under the image the file names
+        image_after = values['image'] if 'image' in missing else self.image
+        if image_after != values['image']:
+            missing = [key for key in missing if key != 'link']
         filled = [key for key in missing if values[key] is not None]
         for key in filled:
             setattr(self, key, values[key])
@@ -166,6 +163,8 @@ def _checked_section(section):
             return None, f"{key} {problem}"
     if (values['image'] is None) != (values['image_alt'] is None):
         return None, "image needs image_alt, and image_alt needs image"
+    if values['link'] is not None and values['image'] is None:
+        return None, "link needs image"
     values['items'], problem = _checked_items(section.get('items'))
     if problem:
         return None, problem
@@ -184,24 +183,16 @@ def _checked_items(items):
     for number, item in enumerate(items, start=1):
         if not isinstance(item, dict):
             return None, f"item {number} must be a JSON object"
-        unknown = sorted(set(item) - {*ITEM_FIELDS, SITE_FIELD})
+        unknown = sorted(set(item) - set(ITEM_FIELDS))
         if unknown:
             return None, f"item {number}: an item has no part named {unknown[0]}"
-        if item.get('title') is None:
-            return None, f"item {number}: title is required"
-        if (item.get('text') is None) == (item.get(SITE_FIELD) is None):
-            return None, f"item {number}: give text or {SITE_FIELD}, one of the two"
-        values = {key: None for key in (*ITEM_FIELDS, SITE_FIELD)}
+        values = {}
         for key, (kind, max_len) in ITEM_FIELDS.items():
             if item.get(key) is None:
-                continue
+                return None, f"item {number}: {key} is required"
             values[key], problem = checked_value(item[key], kind, max_len)
             if problem:
                 return None, f"item {number}: {key} {problem}"
-        if item.get(SITE_FIELD) is not None:
-            if item[SITE_FIELD] not in SITE_TEXT_FIELDS:
-                return None, f"item {number}: {SITE_FIELD} must be one of the site basics: {', '.join(SITE_TEXT_FIELDS)}"
-            values[SITE_FIELD] = item[SITE_FIELD]
         checked.append(values)
     return checked, None
 

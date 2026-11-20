@@ -59,12 +59,19 @@
       "title": "Contact Us",
       "image": "partner-evonexus.png",
       "image_alt": "EvoNexus",
-      "link": "https://evonexus.org/",
-      "items": [
-        { "title": "Phone:", "field": "phone" },
-        { "title": "Email:", "field": "email" },
-        { "title": "Address:", "field": "address" }
-      ]
+      "link": "https://evonexus.org/"
+    },
+    {
+      "name": "phone",
+      "title": "Phone:"
+    },
+    {
+      "name": "email",
+      "title": "Email:"
+    },
+    {
+      "name": "address",
+      "title": "Address:"
     }
   ]
 }

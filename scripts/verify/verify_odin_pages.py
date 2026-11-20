@@ -59,8 +59,7 @@ def main():
     import init_odin_site
     from model import account_types
     from model.user import User
-    from model.odin_section import OdinSection, initOdinSections, FIELDS, ITEM_FIELDS, NAME_MAX, SEED_FILE, SITE_TEXT_FIELDS
-    from model import odin_site
+    from model.odin_section import OdinSection, initOdinSections, FIELDS, ITEM_FIELDS, NAME_MAX, SEED_FILE
     app.config["TESTING"] = True
 
     with open(SEED_FILE, encoding="utf-8") as fh:
@@ -68,8 +67,7 @@ def main():
 
     def as_served(section):
         """One section of a seed file as the route sends it: every part, null for one it does not have."""
-        items = [{key: item.get(key) for key in (*ITEM_FIELDS, "field")} for item in section.get("items", [])]
-        return {"name": section["name"], **{key: section.get(key) for key in FIELDS}, "items": items}
+        return {"name": section["name"], **{key: section.get(key) for key in FIELDS}, "items": section.get("items", [])}
 
     total = sum(len(sections) for sections in seed.values())
 
@@ -113,6 +111,7 @@ def main():
             if not message.startswith(FILE):
                 return f"refused without the file's name: {message}"
             return message[len(FILE):] if rows() == 0 else f"refused, but {rows()} rows were saved"
+        clear()  # so a seed that was wrongly accepted does not fail the checks after it too
         return f"not refused, wrote {written}"
 
     def refused(label, content, expected):
@@ -253,13 +252,14 @@ def main():
         refused(f"image: {bad!r} is refused", with_section("features", image=bad), features + "image must name an image in odin/images/")
     refused("an image without its description is refused", with_section("features", image_alt=None), features + "image needs image_alt, and image_alt needs image")
     refused("a description without its image is refused", with_section("features", image=None), features + "image needs image_alt, and image_alt needs image")
-    for bad in ("http://evonexus.org/", "evonexus.org", "javascript:alert(1)", "https://", "https://user:pass@a.example/", "https://a.example/x y", "#contact", "/about/"):
-        refused(f"link: {bad!r} is refused", with_section("statistics", link=bad),
-                stats + "link must be a full https link, such as https://example.com/page")
+    for bad in ("http://evonexus.org/", "evonexus.org", "javascript:alert(1)", "https://", "https://user:pass@a.example/", "https://a.example/x y",
+                "https://a.example:abc/", "https://a.example:99999/", "#contact", "/about/"):
+        refused(f"link: {bad!r} is refused", with_section("features", link=bad),
+                features + "link must be a full https link, such as https://example.com/page")
+    refused("a link on a section with no image is refused", with_section("statistics", link="https://a.example/"), stats + "link needs image")
     refused("a section with only a name is refused", {"home": [{"name": "empty"}]}, "home section 1: needs a title, text, an image or items")
     refused("a section with only a line above the title and a button is refused",
-            {"home": [{"name": "empty", "kicker": "Introducing", "action": "Contact Us!", "link": "https://a.example/"}]},
-            "home section 1: needs a title, text, an image or items")
+            {"home": [{"name": "empty", "kicker": "Introducing", "action": "Contact Us!"}]}, "home section 1: needs a title, text, an image or items")
     for key in ("title", "text"):
         check(f"a section with only {key} is accepted", run_seed({"home": [{"name": "one", key: "Words"}]}) == ["home.one"])
         clear()
@@ -272,27 +272,9 @@ def main():
     refused("an item that is not an object is refused", with_section("statistics", items=[item, "50%"]), stats + "item 2 must be a JSON object")
     refused("a part an item does not have is refused",
             with_section("statistics", items=[{**item, "value": "50%"}]), stats + "item 1: an item has no part named value")
-    refused("an item without a title is refused", with_section("statistics", items=[item, {"text": "Words"}]), stats + "item 2: title is required")
-    one_of = "item 2: give text or field, one of the two"
-    refused("an item with neither text nor a site basic is refused", with_section("statistics", items=[item, {"title": "Phone:"}]), stats + one_of)
-    refused("an item with both text and a site basic is refused",
-            with_section("statistics", items=[item, {"title": "Phone:", "text": "555", "field": "phone"}]), stats + one_of)
-    basics = "item 2: field must be one of the site basics: " + ", ".join(SITE_TEXT_FIELDS)
-    for bad in ("fax", "logo_dark", "instagram", "Phone", 5, ""):
-        refused(f"an item whose field is {bad!r}, which is not a site basic that holds text, is refused",
-                with_section("statistics", items=[item, {"title": "Phone:", "field": bad}]), stats + basics)
-    check("the site basics an item can show are the ones that hold plain text",
-          SITE_TEXT_FIELDS == [key for key, (kind, size) in odin_site.FIELDS.items() if kind == "text"] and "phone" in SITE_TEXT_FIELDS)
-    check("an item that shows a site basic is accepted, and served with the basic's name and no text of its own",
-          run_seed({"home": [{"name": "details", "items": [{"title": "Phone:", "field": "phone"}]}]}) == ["home.details"]
-          and served()["sections"][0]["items"] == [{"title": "Phone:", "text": None, "field": "phone"}])
-    with app.app_context():
-        OdinSection.query.first().items = [{"title": "Saved before", "text": "the field part existed"}]
-        db.session.commit()
-    check("an item saved before items had a field part is served with the same keys as any other",
-          served()["sections"][0]["items"] == [{"title": "Saved before", "text": "the field part existed", "field": None}])
-    clear()
     for key, (kind, size) in ITEM_FIELDS.items():
+        without = {k: v for k, v in item.items() if k != key}
+        refused(f"an item without {key} is refused", with_section("statistics", items=[item, without]), stats + f"item 2: {key} is required")
         refused(f"an item whose {key} is not text is refused",
                 with_section("statistics", items=[item, {**item, key: 50}]), stats + f"item 2: {key} must be text")
         refused(f"an item whose {key} is blank is refused",
@@ -320,7 +302,7 @@ def main():
     with app.app_context():
         pages, error = OdinSection.validate({"home": [{"name": "hero", "title": "  Café ODIN™  ", "items": [{"title": " 50% ", "text": " Of all "}]}]})
     check("spaces around a value are trimmed", error is None and pages["home"][0]["title"] == "Café ODIN™"
-          and pages["home"][0]["items"] == [{"title": "50%", "text": "Of all", "field": None}], error)
+          and pages["home"][0]["items"] == [{"title": "50%", "text": "Of all"}], error)
     check("text that is not ASCII is saved and served as written",
           run_seed({"home": [{"name": "hero", "title": "Café ODIN™"}]}) == ["home.hero"] and served()["sections"][0]["title"] == "Café ODIN™")
     clear()
@@ -362,10 +344,10 @@ def main():
         check(f"GET for the {page} page returns what the file holds for it",
               served(page) == {"page": page, "sections": [as_served(section) for section in sections]}, served(page))
     site = anon.get("/api/odin/site").get_json()
-    shown = [item["field"] for sections in seed.values() for section in sections for item in section.get("items", []) if item.get("field")]
-    check("every site basic an item shows is one the site route sends with text",
-          bool(shown) and all(isinstance(site.get(field), str) and site[field].strip() for field in shown), shown)
-    images = [section["image"] for section in body["sections"] if section["image"]]
+    labels = [section["name"] for section in seed["contact"] if section["name"] in site]
+    check("each contact label is a section named for the site basic it labels, which the site route sends with text",
+          labels == ["phone", "email", "address"] and all(isinstance(site[name], str) and site[name].strip() for name in labels), labels)
+    images = [section["image"] for sections in seed.values() for section in sections if section.get("image")]
     check("every image a section names is one the image route serves",
           bool(images) and all(anon.get(f"/api/odin/image?name={image}").status_code == 200 for image in images), images)
     # MySQL compares text without regard to case or accents, so a name that is not well formed must
@@ -407,6 +389,26 @@ def main():
         saved("pitch").image = saved("pitch").image_alt = None
         db.session.commit()
 
+    # A link belongs to its own image
+    pictured = seed["home"][place("features") - 1]
+    linked = with_section("features", link="https://a.example/headset")
+    written = run_seed(linked)
+    check("a link added to the file later is filled in under the image it is for",
+          written == ["home.features.link"] and served()["sections"][place("features") - 1]["link"] == "https://a.example/headset", written)
+    with app.app_context():
+        section = saved("features")
+        section.link, section.image, section.image_alt = None, "eye-tracking.webp", "Two eyes opening"
+        db.session.commit()
+    written = run_seed(linked)
+    features_now = served()["sections"][place("features") - 1]
+    check("a link in the file is not put under a different image that is saved",
+          written == [] and features_now["link"] is None and features_now["image"] == "eye-tracking.webp", f"{written} {features_now}")
+    with app.app_context():
+        section = saved("features")
+        section.image, section.image_alt = pictured["image"], pictured["image_alt"]
+        db.session.commit()
+    check("the link checks left the home page as the file has it", served() == body)
+
     # Parts with nothing in them
     with app.app_context():
         section = saved("statistics")
@@ -442,9 +444,9 @@ def main():
         db.session.commit()
     check("the checks above left the home page as the file has it", served() == body)
 
-    check("a page added to the file later is saved beside the others, and each is served by its own name",
-          run_seed({**seed, "added_later": [{"name": "mission", "title": "Our mission"}]}) == ["added_later.mission"]
-          and served("added_later") == {"page": "added_later", "sections": [as_served({"name": "mission", "title": "Our mission"})]}
+    check("a page added to the file later is saved beside the first, and each is served by its own name",
+          run_seed({**seed, "about": [{"name": "mission", "title": "Our mission"}]}) == ["about.mission"]
+          and served("about") == {"page": "about", "sections": [as_served({"name": "mission", "title": "Our mission"})]}
           and served() == body)
 
     for method in ("post", "put", "patch", "delete"):

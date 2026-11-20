@@ -71,6 +71,7 @@ def _is_https_link(value):
         return False
     try:
         parts = urlsplit(value)
+        parts.port  # reading it refuses a port that is not a number a server can have
     except ValueError:
         return False
     return parts.scheme == 'https' and bool(parts.hostname) and '@' not in parts.netloc
