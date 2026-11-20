@@ -9,7 +9,7 @@ something, or what a form offers, reads these files; it does not name a role, a 
 | `account_types.json` | The kinds of account, their roles, who counts as staff, how long a verification lasts, what each type may do, and how each behaves on the sign-up form | `model/account_types.py` | `GET /api/signup-options` (the form's part only) |
 | `schools.json` | The schools a student can choose at sign-up | `model/schools.py` | `GET /api/signup-options` |
 | `permissions.json` | Who may make each request: open to anyone, any signed-in account, or only some roles | `model/permissions.py` | not sent |
-| `odin_site.json` | The basics of the ODIN Diagnostics website: the company name, its tagline and its contact details | `model/odin_site.py` | `GET /api/odin/site` (from the saved row) |
+| `odin_site.json` | The basics of the ODIN Diagnostics website: the company name, its tagline, its contact details, its logos and the footer's links and copyright line | `model/odin_site.py` | `GET /api/odin/site` (from the saved row) |
 
 Each file is added to this folder in the change that makes its values data. Data files that are not
 here yet: `model/presence_schedules.json`, the starter bell schedules for the presence system.
@@ -99,20 +99,27 @@ It calls the routes on a throwaway copy of the app with no network and no provid
 
 ## odin_site.json
 
-The basics every page of the ODIN Diagnostics website shows: `name`, `tagline`, `phone`, `email` and
-`address`. Each must be text that is not blank and fits its column; the sizes are `FIELDS` in
-`model/odin_site.py`.
+The basics every page of the ODIN Diagnostics website shows. `FIELDS` in `model/odin_site.py` lists
+each key with what it holds and its size:
+
+- Text: `name`, `tagline`, `phone`, `email`, `address`, `copyright`.
+- Links, which must start with `https://`: `instagram`, `linkedin`.
+- Images, which must name a file in `odin/images/`: `logo_dark` (for light backgrounds) and
+  `logo_light` (for dark backgrounds).
+
+Every key is required and must not be blank.
 
 This file is a seed, so it is loaded differently from the files above. It is not read at startup. It
-fills the `odin_site` table only while that table is empty:
+gives the `odin_site` table its one row, and after that only fills in fields that row has no text for:
 
 - `scripts/db_init.py` seeds it when it builds or rebuilds a database, so a rebuild picks up an edited file.
-- `scripts/db_upgrade.py` adds the table to an existing database but does not seed it. Run
-  `python scripts/init_odin_site.py` afterwards. Until then `GET /api/odin/site` answers 404.
+- `scripts/db_upgrade.py` adds the table, or a column added later, to an existing database but does
+  not seed it. Run `python scripts/init_odin_site.py` afterwards. Until then `GET /api/odin/site`
+  answers 404 for a missing row, and `null` for a field that has no text yet.
 
-`GET /api/odin/site` serves the saved row, so editing the file does not change a database that already
-has one. Bad data stops the seed with a message naming the file and the field
-(`odin_site.json: phone is required`).
+`GET /api/odin/site` serves the saved row. Text that is saved is never replaced, so editing a value in
+the file does not change a database that already has one. Bad data stops the seed with a message
+naming the file and the field (`odin_site.json: phone is required`).
 
 The route is also in the guest account type's `allowed_requests` in `account_types.json`, so a visitor
 who is signed in as a guest still gets the site's text.

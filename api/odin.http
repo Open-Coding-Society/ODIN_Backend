@@ -1,4 +1,5 @@
-### Read the site basics - expect 200 and an object with name, tagline, phone, email and address
+### Read the site basics - expect 200 and an object with name, tagline, phone, email, address,
+### copyright, instagram, linkedin, logo_dark and logo_light
 GET {{baseUrl}}/api/odin/site
 Accept: application/json
 

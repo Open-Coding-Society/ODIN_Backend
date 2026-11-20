@@ -104,7 +104,10 @@ def main():
     with app.app_context():
         db.create_all()
         check("each column is as long as FIELDS says",
-              all(OdinSite.__table__.columns[key].type.length == size for key, size in FIELDS.items()))
+              all(OdinSite.__table__.columns[key].type.length == size for key, (kind, size) in FIELDS.items()))
+        added_later = [key for key in FIELDS if OdinSite.__table__.columns[key].nullable]
+        check("the fields added after the table existed allow NULL, so db_upgrade.py can add them in place",
+              added_later == ["copyright", "instagram", "linkedin", "logo_dark", "logo_light"], added_later)
 
     anon = app.test_client()
     r = anon.get(URL)
@@ -117,7 +120,14 @@ def main():
     check("a blank value is refused", refusal({**seed, "phone": "   "}) == "odin_site.json: phone is required")
     check("a value that is not text is refused", refusal({**seed, "phone": 8053001100}) == "odin_site.json: phone must be text")
     check("a value longer than its column is refused",
-          refusal({**seed, "name": "x" * (FIELDS["name"] + 1)}) == f"odin_site.json: name must be at most {FIELDS['name']} characters")
+          refusal({**seed, "name": "x" * (FIELDS["name"][1] + 1)}) == f"odin_site.json: name must be at most {FIELDS['name'][1]} characters")
+    for bad in ("http://www.instagram.com/odin", "www.instagram.com/odin", "javascript:alert(1)", "https://", "https://a.example/x y",
+                "https://a.example/\"onclick"):
+        check(f"the link {bad!r} is refused",
+              refusal({**seed, "instagram": bad}) == "odin_site.json: instagram must be a link that starts with https://")
+    for bad in ("missing.svg", "../main.py", "README.md", "LOGO-DARK.SVG"):
+        check(f"the logo {bad!r} is refused",
+              refusal({**seed, "logo_dark": bad}) == "odin_site.json: logo_dark must name an image in odin/images/")
     check("a seed that is not an object is refused", (refusal([seed]) or "").startswith("odin_site.json: "))
     check("a seed that is not valid JSON is refused, and the message names the file",
           (refusal("{ not json") or "").startswith("odin_site.json: is not valid JSON"))
@@ -127,7 +137,8 @@ def main():
 
     accented = {**seed, "name": "Café ODIN"}
     check("text that is not ASCII is saved and served as written",
-          run_seed(seed_file(json.dumps(accented, ensure_ascii=False))) == 1 and anon.get(URL).get_json()["name"] == "Café ODIN")
+          run_seed(seed_file(json.dumps(accented, ensure_ascii=False))) == list(FIELDS)
+          and anon.get(URL).get_json()["name"] == "Café ODIN")
     clear()
 
     check("the seed file is in model/dataconfigs/",
@@ -150,10 +161,24 @@ def main():
     check("GET returns exactly the keys in FIELDS", sorted(body) == sorted(FIELDS), body)
     check("GET returns what odin_site.json holds", body == {key: seed[key] for key in FIELDS}, body)
 
-    check("running the seed again creates nothing", run_seed() == 0 and rows() == 1)
+    check("running the seed again writes nothing", run_seed() == [] and rows() == 1)
     changed = seed_file(json.dumps({**seed, "name": "Another Name"}))
-    check("a later seed file does not replace the saved row",
-          run_seed(changed) == 0 and anon.get(URL).get_json()["name"] == seed["name"])
+    check("a later seed file does not replace text that is saved",
+          run_seed(changed) == [] and anon.get(URL).get_json()["name"] == seed["name"])
+
+    # A row saved before a field was added has no text for it until the seed runs again
+    with app.app_context():
+        site = OdinSite.current()
+        site.copyright, site.logo_light = None, "   "
+        db.session.commit()
+    older = anon.get(URL).get_json()
+    check("a field with no text yet is served as null, with the rest unchanged",
+          older["copyright"] is None and older["name"] == seed["name"], older)
+    code, message = seed_site()
+    check("init_odin_site.py fills in only the fields that had no text, and names them",
+          code == 0 and "copyright, logo_light" in message and anon.get(URL).get_json() == body, message)
+    check("filling in a field from a later seed file leaves saved text alone",
+          run_seed(changed) == [] and anon.get(URL).get_json() == body)
 
     for method in ("post", "put", "patch", "delete"):
         r = getattr(anon, method)(URL, json={"name": "x"})
