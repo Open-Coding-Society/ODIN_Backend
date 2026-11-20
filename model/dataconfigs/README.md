@@ -163,7 +163,7 @@ A section needs a title, text, an image or items. A part that is not listed here
 misspelled one is not dropped without a word. So is a key given twice in one object.
 
 The `about` page has three sections: `intro` (the page's title), `mission` (its paragraphs, with a
-blank line between them) and `team`. Each person on the team is an item: the name is the `title`,
+blank line between them, and the photo beside them) and `team`. Each person on the team is an item: the name is the `title`,
 the role the `subtitle`, the degrees the `note`, the bio the `text`, the photo the `image` and the
 LinkedIn profile the `link`. Two lines in a `note` have a line break between them. `action` on
 `team` is the word on the control that opens a bio. The seed has no words for a person's `link`,
