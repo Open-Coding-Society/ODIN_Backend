@@ -1,0 +1,56 @@
+{
+  "home": [
+    {
+      "name": "hero",
+      "eyebrow": "Introducing",
+      "title": "ODIN™",
+      "text": "AI-powered eye-tracking technology for rapid, non-invasive concussion assessments.",
+      "action": "Contact Us!"
+    },
+    {
+      "name": "statistics",
+      "title": "Concussion Chaos",
+      "items": [
+        { "title": "3,800,000", "text": "Sport related concussions occur each year" },
+        { "title": "50%", "text": "Of concussions go undetected" },
+        { "title": "20%", "text": "High school athletes who play impact sports suffer a concussion each year" },
+        { "title": "$131,500,000", "text": "Amount spent on concussion care per day" }
+      ]
+    },
+    {
+      "name": "features",
+      "image": "product-headset.jpg",
+      "image_alt": "Headset",
+      "items": [
+        { "title": "Portable", "text": "Engineered for immediate point of care use." },
+        { "title": "Interpretable Results", "text": "Clear, straightforward metrics any health care professional can understand." },
+        { "title": "Quick", "text": "Access real-time, actionable insights when it matters most." },
+        { "title": "Data Sharing", "text": "Seamlessly share results with stakeholders such as other medical professionals, parents, and coaches." }
+      ]
+    },
+    {
+      "name": "how_it_works",
+      "title": "How it works",
+      "text": "ODIN utilizes state-of-the-art eye-tracking software to capture precise ocular metrics during our assessments, which are then fed into our advanced machine-learning algorithms for accurate and comprehensive user evaluation.",
+      "image": "eye-tracking.webp",
+      "image_alt": "Eye Tracking"
+    },
+    {
+      "name": "pitch",
+      "title": "Revolutionizing Concussion Care Across All Ages",
+      "text": "Experience the future of concussion care with ODIN’s advanced, data-driven assessments. Our objective evaluations provide unbiased, precise results empowering medical professionals with the crucial information needed for informed decision-making. Protect the well-being of athletes at every level with technology that sets a new standard in sports safety."
+    },
+    {
+      "name": "fda",
+      "title": "FDA Clearance",
+      "text": "This device is an investigational product and has not yet been cleared or approved by the U.S. Food and Drug Administration. It is currently being offered for research use only and is not yet intended to diagnose, treat, cure, or prevent any disease."
+    },
+    {
+      "name": "contact",
+      "title": "Contact Us",
+      "image": "partner-evonexus.png",
+      "image_alt": "EvoNexus",
+      "link": "https://evonexus.org/"
+    }
+  ]
+}

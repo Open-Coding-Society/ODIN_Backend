@@ -3,6 +3,15 @@
 GET {{baseUrl}}/api/odin/site
 Accept: application/json
 
+### Read the home page's sections - expect 200 and an object with page and sections, the sections
+### in the order the page shows them: hero, statistics, features, how_it_works, pitch, fda, contact
+GET {{baseUrl}}/api/odin/page?name=home
+Accept: application/json
+
+### Ask for a page that does not exist - expect 404 and a message
+GET {{baseUrl}}/api/odin/page?name=missing
+Accept: application/json
+
 ### Read one image - expect 200 and the image
 GET {{baseUrl}}/api/odin/image?name=logo-dark.svg
 

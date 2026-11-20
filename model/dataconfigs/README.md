@@ -10,6 +10,7 @@ something, or what a form offers, reads these files; it does not name a role, a 
 | `schools.json` | The schools a student can choose at sign-up | `model/schools.py` | `GET /api/signup-options` |
 | `permissions.json` | Who may make each request: open to anyone, any signed-in account, or only some roles | `model/permissions.py` | not sent |
 | `odin_site.json` | The basics of the ODIN Diagnostics website: the company name, its tagline, its contact details, its logos and the footer's links and copyright line | `model/odin_site.py` | `GET /api/odin/site` (from the saved row) |
+| `odin_pages.json` | The sections of each page of the ODIN Diagnostics website, in the order the page shows them | `model/odin_section.py` | `GET /api/odin/page?name=<page>` (from the saved rows) |
 
 Each file is added to this folder in the change that makes its values data. Data files that are not
 here yet: `model/presence_schedules.json`, the starter bell schedules for the presence system.
@@ -129,6 +130,49 @@ The route is also in the guest account type's `allowed_requests` in `account_typ
 who is signed in as a guest still gets the site's text.
 
 `python scripts/verify/verify_odin_site.py` checks the seed and the route.
+
+## odin_pages.json
+
+The sections of each page of the ODIN Diagnostics website. The file is an object with one key per
+page, and each page is the list of its sections in the order the page shows them:
+
+```json
+{ "home": [ { "name": "hero", "title": "...", "text": "..." }, { "name": "statistics", "items": [] } ] }
+```
+
+A page's name and a section's name are lowercase words joined by underscores (`how_it_works`). A
+section needs a `name` that no other section of its page has. Every other part is optional, and
+`FIELDS` in `model/odin_section.py` lists each with what it holds and its size:
+
+- Text: `eyebrow` (the short line above the title), `title`, `text`, `action` (the words on the
+  section's button) and `image_alt` (what the image shows).
+- `image`, which must name a file in `odin/images/`. `image` and `image_alt` go together.
+- `link`, which must be a full `https://` address: the other site the section's image or button
+  leads to.
+- `items`, a list for a section that shows several of one thing, such as statistics or features.
+  Each item needs a `title` and a `text`.
+
+A section must have something to show: a title, text, an image or items. A key that is not listed
+here is refused, so a misspelled one is not silently dropped.
+
+Like `odin_site.json`, this file is a seed. It is not read at startup. `scripts/db_init.py` seeds it
+when it builds a database, and after `scripts/db_upgrade.py` has added the `odin_section` table to
+an existing one, `python scripts/init_odin_site.py` seeds it there. Until then
+`GET /api/odin/page?name=home` answers 404. Seeding again is safe:
+
+- A section the database does not have is added.
+- A section it has keeps everything saved for it. Only a part it has nothing for is filled in, so a
+  part added to the file later reaches the database, and editing wording in the file does not
+  change a database that already has it.
+- The file decides the order of a page's sections.
+- A section that was removed from the file stays in the database.
+
+Everything is checked before anything is saved, and saved together. Bad data stops the seed with a
+message naming the file, the page and the section by its place on the page
+(`odin_pages.json: home section 2: item 1: text is required`).
+
+The route is public and is in the guest account type's `allowed_requests`, like the site basics.
+`python scripts/verify/verify_odin_pages.py` checks the seed and the route.
 
 ## What the sign-up page is told
 

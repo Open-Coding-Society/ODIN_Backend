@@ -1,6 +1,7 @@
 from flask import Blueprint, request, send_from_directory
 from flask_restful import Api, Resource # used for REST API building
 from model.odin_image import IMAGE_FOLDER, image_file, image_type
+from model.odin_section import OdinSection
 from model.odin_site import OdinSite
 
 odin_api = Blueprint('odin_api', __name__,
@@ -23,6 +24,17 @@ class OdinAPI:
                 return {'message': 'The ODIN site content has not been set up.'}, 404
             return site.read()
 
+    class _Page(Resource):  # One page's sections
+        def get(self): # Read method
+            ''' The sections of the page named by ?name=, in the order the page shows them '''
+            name = request.args.get('name')
+            if not name:
+                return {'message': 'Give the page name, as in ?name=home'}, 400
+            sections = OdinSection.for_page(name)
+            if not sections:
+                return {'message': 'No ODIN page has that name.'}, 404
+            return {'page': sections[0].page, 'sections': [section.read() for section in sections]}
+
     class _Image(Resource):  # One of the website's images
         def get(self): # Read method
             ''' The image file named by ?name= '''
@@ -43,4 +55,5 @@ class OdinAPI:
 
     # building RESTapi endpoint
     api.add_resource(_Site, '/site')
+    api.add_resource(_Page, '/page')
     api.add_resource(_Image, '/image')

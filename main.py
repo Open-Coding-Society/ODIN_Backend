@@ -58,6 +58,7 @@ from model.post import Post, init_posts
 from model.microblog import MicroBlog, Topic, initMicroblogs
 from model.leaderboard import ScoreCounterEvent, ElementaryLeaderboardEvent
 from hacks.jokes import initJokes 
+from model.odin_section import initOdinSections
 from model.odin_site import initOdinSite
 # from model.announcement import Announcement ##temporary revert
 
@@ -309,6 +310,7 @@ def generate_data():
     initPersonaUsers()
     seed_schedules()  # presence schedules from model/presence_schedules.json
     initOdinSite()  # ODIN site basics from model/dataconfigs/odin_site.json
+    initOdinSections()  # ODIN page sections from model/dataconfigs/odin_pages.json
 
 # Register the custom command group with the Flask application
 app.cli.add_command(custom_cli)
