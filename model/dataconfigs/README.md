@@ -149,20 +149,42 @@ holds and its size:
 - Text: `kicker` (the short line above the title), `title`, `text` and `action` (the words on the
   section's button; where the button leads is up to the page).
 - `image` names a file in `odin/images/`, and `image_alt` says what it shows. Give both or neither.
-- `items` is a list for a section that shows several of one thing, such as statistics or features.
-  Each item needs a `title` and a `text`. Leave `items` out of a section that has no list.
+- `link` is the address of another site, which the section's image leads to. It must be a full
+  `https://` address, and a section with a `link` needs an `image`.
+- `items` is a list for a section that shows several of one thing, such as statistics, features
+  or the people on the team. Each item needs a `title` and a `text`. It can also have a `subtitle`
+  (a line under the title, such as a role), a `note` (a short line of facts, such as degrees), an
+  `image` with its `image_alt`, and a `link` to another site, such as a profile. An item's `link`
+  needs no `image`. An item is saved and sent with only the parts it was given.
+  `ITEM_REQUIRED_FIELDS` and `ITEM_OPTIONAL_FIELDS` list the parts and their sizes. Leave `items`
+  out of a section that has no list.
 
 A section needs a title, text, an image or items. A part that is not listed here is refused, so a
 misspelled one is not dropped without a word. So is a key given twice in one object.
 
+The `about` page has three sections: `intro` (the page's title), `mission` (its paragraphs, with a
+blank line between them, and the photo beside them) and `team`. Each person on the team is an item: the name is the `title`,
+the role the `subtitle`, the degrees the `note`, the bio the `text`, the photo the `image` and the
+LinkedIn profile the `link`. Two lines in a `note` have a line break between them. `action` on
+`team` is the word on the control that opens a bio. The seed has no words for a person's `link`,
+because the current site shows only an icon there. Connor Heffler has no `image` yet. His photo is
+held back until ODIN confirms it can be used; see `odin/images/README.md`. The team's names and
+bios came from the current site, so they are kept here. The rebuilt site's About page does not show
+the team (ODIN_Frontend issue 21); the section stays until the team decides whether to remove it.
+
+The `contact` page has five sections. `intro` is the Contact Us page's title and the line under it.
+`details` is the block the home page and the Contact Us page both show: its heading and the partner
+logo with its link. `phone`, `email` and `address` each hold the label for the site basic of the
+same name. The number, the email and the address themselves stay in `odin_site.json`.
+
 Like `odin_site.json`, this file is a seed. It is not read at startup:
 
 - `scripts/db_init.py` seeds it when it builds or rebuilds a database.
-- `scripts/db_upgrade.py` adds the `odin_section` table to an existing database but does not seed
-  it. Run `python scripts/init_odin_site.py` afterwards. Until then `GET /api/odin/page?name=home`
-  answers 404.
-- After deploying this code, run `db_upgrade.py` right away. Until the table exists the route
-  answers 500, as any query of a missing table does.
+- `scripts/db_upgrade.py` adds the `odin_section` table, or a column added later, to an existing
+  database but does not seed it. Run `python scripts/init_odin_site.py` afterwards. Until then
+  `GET /api/odin/page` answers 404 for a page whose sections are not saved yet.
+- After deploying code that adds the table or a part, run `db_upgrade.py` right away. Until the
+  table and every column exist the route answers 500 for every page.
 
 Seeding again is safe. The whole file is checked before anything is saved. Then all of it is saved,
 or none:
@@ -171,6 +193,10 @@ or none:
 - A section it already has keeps its saved text. Only its empty parts are filled in. So a part
   added to the file later reaches the database, but changing wording in the file does not change
   text that is already saved.
+- A section's `items` are one part. A saved list is left as it is, so a change to one item in the
+  file, such as a photo for a person who had none, does not reach a database that already has the
+  list. To bring a saved list up to date, set that row's `items` to `[]` and run
+  `python scripts/init_odin_site.py`, which fills the list again from the file.
 - The file decides the order of a page's sections.
 - A section that was removed from the file, or renamed in it, stays in the database and on the
   page. Delete its row to take it off.

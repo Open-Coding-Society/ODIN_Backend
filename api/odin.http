@@ -8,6 +8,17 @@ Accept: application/json
 GET {{baseUrl}}/api/odin/page?name=home
 Accept: application/json
 
+### Read the About page - expect 200 and three sections: intro, mission and team. Each item of team
+### is a person with a title, subtitle, note, text and link, and an image with its image_alt when
+### there is a photo
+GET {{baseUrl}}/api/odin/page?name=about
+Accept: application/json
+
+### Read the contact block - expect 200 and five sections: intro, details, then phone, email and
+### address, each holding the label for the site basic of the same name
+GET {{baseUrl}}/api/odin/page?name=contact
+Accept: application/json
+
 ### Ask for a page that does not exist - expect 404 and a message
 GET {{baseUrl}}/api/odin/page?name=missing
 Accept: application/json

@@ -47,5 +47,84 @@
       "title": "FDA Clearance",
       "text": "This device is an investigational product and has not yet been cleared or approved by the U.S. Food and Drug Administration. It is currently being offered for research use only and is not yet intended to diagnose, treat, cure, or prevent any disease."
     }
+  ],
+  "about": [
+    {
+      "name": "intro",
+      "title": "About"
+    },
+    {
+      "name": "mission",
+      "text": "At ODIN Diagnostics we are committed to making a significant leap forward in brain health. Our team comprises a diverse group of interdisciplinary engineers, entrepreneurs, and athletes united by a shared passion for creating a safer future and driving meaningful change.\n\nWe understand the complexities of concussions and are committed to addressing these challenges head-on. Our mission is to redefine concussion care to preserve brain health. We aim to prevent further damage after injury through early detection and intervention and by guiding evidence-based treatments to reduce long-term effects.\n\nWe are driven to make a lasting impact and enhance safety across all areas where brain injuries occur.",
+      "image": "headset-lens-close.webp",
+      "image_alt": "The lens of a headset seen up close, with rings of green light across the glass."
+    },
+    {
+      "name": "team",
+      "title": "Meet our Team",
+      "action": "About",
+      "items": [
+        {
+          "title": "CONNOR HEFFLER",
+          "subtitle": "Founder & CEO",
+          "note": "B.S. Economics, Entrepreneurship",
+          "text": "With a background in Economics and Entrepreneurship, Connor brings personal experience to this issue, having suffered prior concussions as a Division-1 football player at Cal Poly. He has witnessed firsthand the devastating impact of these injuries on his teammates–many of whom lost their athletic careers from concussions and still battle with long-term effects. This deep understanding of the problem drives our commitment to developing a meaningful solution. His role includes business and customer development, business strategy, operations, team leadership, partnerships, IP strategy, and fundraising.",
+          "link": "https://www.linkedin.com/in/connor-heffler/"
+        },
+        {
+          "title": "MARINA ZELLERS",
+          "subtitle": "Product Manager",
+          "note": "M.S. Biomedical Engineering",
+          "text": "With a master’s degree in biomedical engineering and a concentration in bioinstrumentation, Marina brings expertise in medical technology, regulatory processes, and user-centered design. In the corporate space, she has written and executed test protocols, collaborated with vendors to resolve product issues, and optimized surgical planning processes through data-driven refinements. Her role includes clinical testing and validation, regulatory and clinical compliance, optimizing user experience and human factors, and virtual reality engineering.",
+          "image": "team-marina-zellers.webp",
+          "image_alt": "Marina Zellers, Product Manager",
+          "link": "https://www.linkedin.com/in/marina-zellers/"
+        },
+        {
+          "title": "CONNOR FOURT",
+          "subtitle": "Software Architect",
+          "note": "Startup Engineering Manager, B.S. Biochemistry",
+          "text": "With over seven years of experience in building web applications at software startups in the IT space, Connor brings expertise in software engineering and delivering value through innovative solutions. In the corporate space, he wore many hats where he previously held positions such as developer, engineering manager, designer, and also delved into customer support, quality assurance, and sales. His role includes software architecting, application scalability, software engineering, and product roadmapping.",
+          "image": "team-connor-fourt.webp",
+          "image_alt": "Connor Fourt, Engineering Manager",
+          "link": "https://www.linkedin.com/in/connorfourt/"
+        },
+        {
+          "title": "MICHAEL NOON",
+          "subtitle": "Lead Software Engineer",
+          "note": "M.S. Biomedical Engineering\nB.S. Computer Engineering",
+          "text": "As a current master’s student with a background in biomedical engineering and computer engineering, Michael brings expertise in embedded systems, biomedical engineering and research, and data management. In the corporate space, he previously held a position as a senior technician where he specialized in IT infrastructure, enterprise networking, system security, HIPAA-compliant data management, and server deployment. His role includes full-stack web development, data management, and virtual reality engineering.",
+          "image": "team-michael-noon.webp",
+          "image_alt": "Michael Noon, Lead Software Engineer",
+          "link": "https://www.linkedin.com/in/michael-noon-081289252/"
+        }
+      ]
+    }
+  ],
+  "contact": [
+    {
+      "name": "intro",
+      "title": "Contact Us",
+      "text": "Please reach out regarding any questions about our product or company"
+    },
+    {
+      "name": "details",
+      "title": "Contact Us",
+      "image": "partner-evonexus.png",
+      "image_alt": "EvoNexus",
+      "link": "https://evonexus.org/"
+    },
+    {
+      "name": "phone",
+      "title": "Phone:"
+    },
+    {
+      "name": "email",
+      "title": "Email:"
+    },
+    {
+      "name": "address",
+      "title": "Address:"
+    }
   ]
 }
