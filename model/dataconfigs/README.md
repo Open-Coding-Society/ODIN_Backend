@@ -134,45 +134,55 @@ who is signed in as a guest still gets the site's text.
 ## odin_pages.json
 
 The sections of each page of the ODIN Diagnostics website. The file is an object with one key per
-page, and each page is the list of its sections in the order the page shows them:
+page. Each page is the list of its sections, in the order the page shows them:
 
 ```json
-{ "home": [ { "name": "hero", "title": "...", "text": "..." }, { "name": "statistics", "items": [] } ] }
+{ "home": [ { "name": "hero", "title": "...", "text": "..." },
+            { "name": "statistics", "items": [ { "title": "50%", "text": "..." } ] } ] }
 ```
 
-A page's name and a section's name are lowercase words joined by underscores (`how_it_works`). A
-section needs a `name` that no other section of its page has. Every other part is optional, and
-`FIELDS` in `model/odin_section.py` lists each with what it holds and its size:
+A page's name and a section's name are at most 40 lowercase letters, digits and underscores, and
+start with a letter (`how_it_works`). A section needs a `name` that no other section of its page
+has. Every other part is optional. `FIELDS` in `model/odin_section.py` lists each part with what it
+holds and its size:
 
-- Text: `eyebrow` (the short line above the title), `title`, `text`, `action` (the words on the
-  section's button) and `image_alt` (what the image shows).
-- `image`, which must name a file in `odin/images/`. `image` and `image_alt` go together.
-- `link`, which must be a full `https://` address: the other site the section's image or button
-  leads to.
-- `items`, a list for a section that shows several of one thing, such as statistics or features.
-  Each item needs a `title` and a `text`.
+- Text: `kicker` (the short line above the title), `title`, `text` and `action` (the words on the
+  section's button; where the button leads is up to the page).
+- `image` names a file in `odin/images/`, and `image_alt` says what it shows. Give both or neither.
+- `items` is a list for a section that shows several of one thing, such as statistics or features.
+  Each item needs a `title` and a `text`. Leave `items` out of a section that has no list.
 
-A section must have something to show: a title, text, an image or items. A key that is not listed
-here is refused, so a misspelled one is not silently dropped.
+A section needs a title, text, an image or items. A part that is not listed here is refused, so a
+misspelled one is not dropped without a word. So is a key given twice in one object.
 
-Like `odin_site.json`, this file is a seed. It is not read at startup. `scripts/db_init.py` seeds it
-when it builds a database, and after `scripts/db_upgrade.py` has added the `odin_section` table to
-an existing one, `python scripts/init_odin_site.py` seeds it there. Until then
-`GET /api/odin/page?name=home` answers 404. Seeding again is safe:
+Like `odin_site.json`, this file is a seed. It is not read at startup:
+
+- `scripts/db_init.py` seeds it when it builds or rebuilds a database.
+- `scripts/db_upgrade.py` adds the `odin_section` table to an existing database but does not seed
+  it. Run `python scripts/init_odin_site.py` afterwards. Until then `GET /api/odin/page?name=home`
+  answers 404.
+- After deploying this code, run `db_upgrade.py` right away. Until the table exists the route
+  answers 500, as any query of a missing table does.
+
+Seeding again is safe. The whole file is checked before anything is saved. Then all of it is saved,
+or none:
 
 - A section the database does not have is added.
-- A section it has keeps everything saved for it. Only a part it has nothing for is filled in, so a
-  part added to the file later reaches the database, and editing wording in the file does not
-  change a database that already has it.
+- A section it already has keeps its saved text. Only its empty parts are filled in. So a part
+  added to the file later reaches the database, but changing wording in the file does not change
+  text that is already saved.
 - The file decides the order of a page's sections.
-- A section that was removed from the file stays in the database.
+- A section that was removed from the file, or renamed in it, stays in the database and on the
+  page. Delete its row to take it off.
 
-Everything is checked before anything is saved, and saved together. Bad data stops the seed with a
-message naming the file, the page and the section by its place on the page
-(`odin_pages.json: home section 2: item 1: text is required`).
+To change wording a database already holds, change it in the file and in the saved row (a database
+update). Bad data stops the seed with a message naming the file, the page and the section by its
+place on the page (`odin_pages.json: home section 2: item 1: text is required`).
 
-The route is public and is in the guest account type's `allowed_requests`, like the site basics.
-`python scripts/verify/verify_odin_pages.py` checks the seed and the route.
+`GET /api/odin/page?name=<page>` sends `{"page": ..., "sections": [...]}`. Each section has its
+`name`, every part in `FIELDS` (`null` for one it has nothing for) and its `items` (an empty list
+when it has none). The route is public and is in the guest account type's `allowed_requests`, like
+the site basics. `python scripts/verify/verify_odin_pages.py` checks the seed and the route.
 
 ## What the sign-up page is told
 

@@ -2,7 +2,7 @@
   "home": [
     {
       "name": "hero",
-      "eyebrow": "Introducing",
+      "kicker": "Introducing",
       "title": "ODIN™",
       "text": "AI-powered eye-tracking technology for rapid, non-invasive concussion assessments.",
       "action": "Contact Us!"
@@ -44,13 +44,6 @@
       "name": "fda",
       "title": "FDA Clearance",
       "text": "This device is an investigational product and has not yet been cleared or approved by the U.S. Food and Drug Administration. It is currently being offered for research use only and is not yet intended to diagnose, treat, cure, or prevent any disease."
-    },
-    {
-      "name": "contact",
-      "title": "Contact Us",
-      "image": "partner-evonexus.png",
-      "image_alt": "EvoNexus",
-      "link": "https://evonexus.org/"
     }
   ]
 }

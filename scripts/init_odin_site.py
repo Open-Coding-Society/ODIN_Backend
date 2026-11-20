@@ -3,9 +3,9 @@
 
 scripts/db_init.py seeds every table when it builds a database. scripts/db_upgrade.py adds the
 ODIN tables, or a new column of one, to an existing database but leaves them empty. This adds
-what is missing, first the site basics and then the page sections: a row the database does not
-have, and the fields a saved row has no text for. It never replaces text that is there, so it is
-safe to run again.
+what is missing. It seeds the site basics first, then the page sections. A missing row is added,
+and a saved row gets only the fields it has no text for. Text that is there is never replaced,
+so it is safe to run again.
 
 Usage:  python scripts/init_odin_site.py        (from the flask repo root, after db_upgrade.py)
 Exit:   0 the site basics and the page sections are all there, 1 otherwise.
@@ -17,21 +17,20 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from __init__ import app, db
-from model import odin_section
 from model.odin_section import OdinSection, initOdinSections
-from model.odin_site import FIELDS, OdinSite, initOdinSite
+from model.odin_site import OdinSite, initOdinSite
 
 
-def not_ready(model, columns):
+def not_ready(model):
     """What db_upgrade.py still has to add before this model's table can be seeded, as a message.
-    None when the table and these columns are there. Creating them is left to db_upgrade.py, which
-    takes a backup first."""
+    None when the table and every column of the model are there. Creating them is left to
+    db_upgrade.py, which takes a backup first."""
     inspector = db.inspect(db.engine)
     table = model.__tablename__
     if table not in inspector.get_table_names():
         return f"The {table} table does not exist yet. Run scripts/db_upgrade.py first."
     present = {column['name'] for column in inspector.get_columns(table)}
-    absent = [key for key in columns if key not in present]
+    absent = [column.name for column in model.__table__.columns if column.name not in present]
     if absent:
         return f"The {table} table has no column for: {', '.join(absent)}. Run scripts/db_upgrade.py first."
     return None
@@ -40,7 +39,7 @@ def not_ready(model, columns):
 def seed_site():
     """(exit code, message) for the site basics."""
     with app.app_context():
-        problem = not_ready(OdinSite, FIELDS)
+        problem = not_ready(OdinSite)
         if problem:
             return 1, problem
         had_row = OdinSite.current() is not None
@@ -58,7 +57,7 @@ def seed_site():
 def seed_sections():
     """(exit code, message) for the page sections."""
     with app.app_context():
-        problem = not_ready(OdinSection, ['page', 'name', 'position', *odin_section.FIELDS, 'items'])
+        problem = not_ready(OdinSection)
         if problem:
             return 1, problem
         try:
@@ -70,8 +69,16 @@ def seed_sections():
         return 0, "The ODIN page sections are already there. Nothing changed."
 
 
+def main():
+    """Runs both seeds and returns the exit code. Each message is printed as its seed finishes, so
+    the first is on screen even if the second stops with an error."""
+    exit_code = 0
+    for seed in (seed_site, seed_sections):
+        code, message = seed()
+        print(message, flush=True)
+        exit_code = max(exit_code, code)
+    return exit_code
+
+
 if __name__ == "__main__":
-    results = [seed_site(), seed_sections()]
-    for code, message in results:
-        print(message)
-    sys.exit(max(code for code, message in results))
+    sys.exit(main())
