@@ -103,9 +103,10 @@ The basics every page of the ODIN Diagnostics website shows. `FIELDS` in `model/
 each key with what it holds and its size:
 
 - Text: `name`, `tagline`, `phone`, `email`, `address`, `copyright`.
-- Links, which must start with `https://`: `instagram`, `linkedin`.
-- Images, which must name a file in `odin/images/`: `logo_dark` (for light backgrounds) and
-  `logo_light` (for dark backgrounds).
+- Links, which must be full `https://` addresses: `instagram`, `linkedin`.
+- Images, which must name a file in `odin/images/`: `logo_dark` (the logo in black, for light
+  backgrounds) and `logo_light` (the name in white, for dark backgrounds; its mark is black, see
+  `odin/images/README.md`).
 
 Every key is required and must not be blank.
 
@@ -116,10 +117,13 @@ gives the `odin_site` table its one row, and after that only fills in fields tha
 - `scripts/db_upgrade.py` adds the table, or a column added later, to an existing database but does
   not seed it. Run `python scripts/init_odin_site.py` afterwards. Until then `GET /api/odin/site`
   answers 404 for a missing row, and `null` for a field that has no text yet.
+- After deploying code that adds a field, run `db_upgrade.py` right away. Until the column exists
+  the route answers 500, as any query of a table with a missing column does.
 
 `GET /api/odin/site` serves the saved row. Text that is saved is never replaced, so editing a value in
-the file does not change a database that already has one. Bad data stops the seed with a message
-naming the file and the field (`odin_site.json: phone is required`).
+the file does not change a database that already has one, and a row with nothing missing is left
+alone without the file being read. Bad data stops the seed with a message naming the file and the
+field (`odin_site.json: phone is required`).
 
 The route is also in the guest account type's `allowed_requests` in `account_types.json`, so a visitor
 who is signed in as a guest still gets the site's text.

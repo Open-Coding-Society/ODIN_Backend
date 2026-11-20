@@ -83,6 +83,14 @@ def main():
             return str(error) if rows() == 0 else None
         return None
 
+    def refusal_from(path):
+        """The message seeding from this path is refused with, or None when it was not refused or saved a row."""
+        try:
+            run_seed(path)
+        except ValueError as error:
+            return str(error) if rows() == 0 else None
+        return None
+
     def session_client(role):
         """A client signed in through the Flask session login as a new account of this role."""
         uid = "zz_odin_" + role.lower()
@@ -101,7 +109,34 @@ def main():
     code, message = seed_site()
     check("init_odin_site.py on a database without the table changes nothing and says to run db_upgrade.py",
           code == 1 and "db_upgrade.py" in message, message)
+    # A database from before the later fields were added: the table has only its first five columns
+    OLD = ["name", "tagline", "phone", "email", "address"]
+    later = [key for key in FIELDS if key not in OLD]
     with app.app_context():
+        db.session.execute(db.text("CREATE TABLE odin_site (id INTEGER NOT NULL PRIMARY KEY, name VARCHAR(100) NOT NULL, "
+                                   "tagline VARCHAR(255) NOT NULL, phone VARCHAR(40) NOT NULL, email VARCHAR(255) NOT NULL, "
+                                   "address VARCHAR(255) NOT NULL)"))
+        db.session.execute(db.text("INSERT INTO odin_site (name, tagline, phone, email, address) VALUES "
+                                   "('Saved Name', 'Saved tagline.', '555', 'saved@example.com', 'Saved address')"))
+        db.session.commit()
+    code, message = seed_site()
+    check("init_odin_site.py on a table without the later columns names them and says to run db_upgrade.py",
+          code == 1 and "db_upgrade.py" in message and all(key in message for key in later), message)
+    with app.app_context():
+        for key in later:  # what db_upgrade.py does for a column that allows NULL
+            db.session.execute(db.text(f"ALTER TABLE odin_site ADD COLUMN {key} VARCHAR({FIELDS[key][1]}) NULL"))
+        db.session.commit()
+    upgraded = app.test_client().get(URL).get_json()
+    check("after the columns are added, the later fields are served as null until the seed runs",
+          all(upgraded[key] is None for key in later) and upgraded["name"] == "Saved Name", upgraded)
+    code, message = seed_site()
+    filled = app.test_client().get(URL).get_json()
+    check("init_odin_site.py then fills the later fields and leaves the saved five as they were",
+          code == 0 and all(filled[key] == seed[key] for key in later)
+          and [filled[key] for key in OLD] == ["Saved Name", "Saved tagline.", "555", "saved@example.com", "Saved address"], filled)
+    with app.app_context():
+        db.session.remove()
+        OdinSite.__table__.drop(db.engine)
         db.create_all()
         check("each column is as long as FIELDS says",
               all(OdinSite.__table__.columns[key].type.length == size for key, (kind, size) in FIELDS.items()))
@@ -121,13 +156,19 @@ def main():
     check("a value that is not text is refused", refusal({**seed, "phone": 8053001100}) == "odin_site.json: phone must be text")
     check("a value longer than its column is refused",
           refusal({**seed, "name": "x" * (FIELDS["name"][1] + 1)}) == f"odin_site.json: name must be at most {FIELDS['name'][1]} characters")
-    for bad in ("http://www.instagram.com/odin", "www.instagram.com/odin", "javascript:alert(1)", "https://", "https://a.example/x y",
-                "https://a.example/\"onclick"):
-        check(f"the link {bad!r} is refused",
-              refusal({**seed, "instagram": bad}) == "odin_site.json: instagram must be a link that starts with https://")
-    for bad in ("missing.svg", "../main.py", "README.md", "LOGO-DARK.SVG"):
-        check(f"the logo {bad!r} is refused",
-              refusal({**seed, "logo_dark": bad}) == "odin_site.json: logo_dark must name an image in odin/images/")
+    bad_links = ("http://www.instagram.com/odin", "www.instagram.com/odin", "javascript:alert(1)", "https://", "https:///odin",
+                 "https://?x", "https://user:pass@a.example/", "https://a.example/x y", "https://a.example/\"onclick",
+                 "https://a.example/'x", "https://a.example/<x>", "https://a.example/\\x", "https://a.example/\u200bx")
+    for key in [k for k, (kind, size) in FIELDS.items() if kind == "link"]:
+        for bad in bad_links:
+            check(f"{key}: the link {bad!r} is refused",
+                  refusal({**seed, key: bad}) == f"odin_site.json: {key} must be a full https link, such as https://example.com/page")
+    for key in [k for k, (kind, size) in FIELDS.items() if kind == "image"]:
+        for bad in ("missing.svg", "../main.py", "README.md", seed[key].upper()):
+            check(f"{key}: the image {bad!r} is refused",
+                  refusal({**seed, key: bad}) == f"odin_site.json: {key} must name an image in odin/images/")
+    check("a seed file that cannot be read is refused, and the message names the file",
+          (refusal_from(os.path.join(tempfile.mkdtemp(prefix="odin-none-"), "odin_site.json")) or "").startswith("odin_site.json: cannot be read"))
     check("a seed that is not an object is refused", (refusal([seed]) or "").startswith("odin_site.json: "))
     check("a seed that is not valid JSON is refused, and the message names the file",
           (refusal("{ not json") or "").startswith("odin_site.json: is not valid JSON"))
@@ -162,6 +203,8 @@ def main():
     check("GET returns what odin_site.json holds", body == {key: seed[key] for key in FIELDS}, body)
 
     check("running the seed again writes nothing", run_seed() == [] and rows() == 1)
+    check("with nothing missing, a seed file that is broken or gone is not even read",
+          run_seed(seed_file("{ not json")) == [] and run_seed(os.path.join(tempfile.mkdtemp(prefix="odin-none-"), "odin_site.json")) == [])
     changed = seed_file(json.dumps({**seed, "name": "Another Name"}))
     check("a later seed file does not replace text that is saved",
           run_seed(changed) == [] and anon.get(URL).get_json()["name"] == seed["name"])
@@ -177,8 +220,19 @@ def main():
     code, message = seed_site()
     check("init_odin_site.py fills in only the fields that had no text, and names them",
           code == 0 and "copyright, logo_light" in message and anon.get(URL).get_json() == body, message)
-    check("filling in a field from a later seed file leaves saved text alone",
-          run_seed(changed) == [] and anon.get(URL).get_json() == body)
+    with app.app_context():
+        OdinSite.current().copyright = ""
+        db.session.commit()
+    check("an empty field is served as null too", anon.get(URL).get_json()["copyright"] is None)
+    later_seed = seed_file(json.dumps({**seed, "name": "Another Name", "tagline": "Another tagline.", "copyright": "Another copyright line."}))
+    after = None
+    written = run_seed(later_seed)
+    after = anon.get(URL).get_json()
+    check("a later seed file fills only the empty field and replaces no text that is saved",
+          written == ["copyright"] and after == {**body, "copyright": "Another copyright line."}, f"{written} {after}")
+    with app.app_context():
+        OdinSite.current().copyright = seed["copyright"]
+        db.session.commit()
 
     for method in ("post", "put", "patch", "delete"):
         r = getattr(anon, method)(URL, json={"name": "x"})

@@ -7,7 +7,7 @@ the row when there is none, and fills in the fields a saved row has no text for.
 replaces text that is there, so it is safe to run again.
 
 Usage:  python scripts/init_odin_site.py        (from the flask repo root, after db_upgrade.py)
-Exit:   0 the row is there, 1 otherwise.
+Exit:   0 the row has text for every field, 1 otherwise.
 """
 import os
 import sys
@@ -16,14 +16,20 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from __init__ import app, db
-from model.odin_site import OdinSite, initOdinSite
+from model.odin_site import FIELDS, OdinSite, initOdinSite
 
 
 def seed_site():
-    """(exit code, message). Creating the table is left to db_upgrade.py, which takes a backup first."""
+    """(exit code, message). Creating the table, or adding a column to it, is left to db_upgrade.py,
+    which takes a backup first."""
     with app.app_context():
-        if OdinSite.__tablename__ not in db.inspect(db.engine).get_table_names():
+        inspector = db.inspect(db.engine)
+        if OdinSite.__tablename__ not in inspector.get_table_names():
             return 1, "The odin_site table does not exist yet. Run scripts/db_upgrade.py first."
+        columns = {column['name'] for column in inspector.get_columns(OdinSite.__tablename__)}
+        absent = [key for key in FIELDS if key not in columns]
+        if absent:
+            return 1, f"The odin_site table has no column for: {', '.join(absent)}. Run scripts/db_upgrade.py first."
         had_row = OdinSite.current() is not None
         try:
             written = initOdinSite()

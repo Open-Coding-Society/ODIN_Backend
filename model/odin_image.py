@@ -29,7 +29,7 @@ def image_file(name):
     """The path of the image with this name, or None when the folder has no such image. The name is
     matched against the folder's listing, so its letter case counts on every kind of disk, and a
     link is refused because it could point outside the folder."""
-    if not is_image_name(name) or name not in os.listdir(IMAGE_FOLDER):
+    if not is_image_name(name) or not os.path.isdir(IMAGE_FOLDER) or name not in os.listdir(IMAGE_FOLDER):
         return None
     path = os.path.join(IMAGE_FOLDER, name)
     return path if os.path.isfile(path) and not os.path.islink(path) else None

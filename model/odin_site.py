@@ -1,6 +1,7 @@
 """ ODIN site basics """
 import json
 import os
+from urllib.parse import urlsplit
 
 from __init__ import db
 from model.odin_image import image_file
@@ -26,10 +27,6 @@ FIELDS = {
 }
 
 
-def _column(key, nullable):
-    return db.Column(db.String(FIELDS[key][1]), nullable=nullable)
-
-
 class OdinSite(db.Model):
     """
     OdinSite Model
@@ -45,18 +42,18 @@ class OdinSite(db.Model):
     __tablename__ = 'odin_site'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = _column('name', False)
-    tagline = _column('tagline', False)
-    phone = _column('phone', False)
-    email = _column('email', False)
-    address = _column('address', False)
+    name = db.Column(db.String(FIELDS['name'][1]), nullable=False)
+    tagline = db.Column(db.String(FIELDS['tagline'][1]), nullable=False)
+    phone = db.Column(db.String(FIELDS['phone'][1]), nullable=False)
+    email = db.Column(db.String(FIELDS['email'][1]), nullable=False)
+    address = db.Column(db.String(FIELDS['address'][1]), nullable=False)
     # Fields added after the table existed allow NULL, so db_upgrade.py can add them in place. The
     # seed still requires every one of them, and fills them into a row that was saved before.
-    copyright = _column('copyright', True)
-    instagram = _column('instagram', True)
-    linkedin = _column('linkedin', True)
-    logo_dark = _column('logo_dark', True)
-    logo_light = _column('logo_light', True)
+    copyright = db.Column(db.String(FIELDS['copyright'][1]), nullable=True)
+    instagram = db.Column(db.String(FIELDS['instagram'][1]), nullable=True)
+    linkedin = db.Column(db.String(FIELDS['linkedin'][1]), nullable=True)
+    logo_dark = db.Column(db.String(FIELDS['logo_dark'][1]), nullable=True)
+    logo_light = db.Column(db.String(FIELDS['logo_light'][1]), nullable=True)
 
     # Constructor: takes the checked values, one per key in FIELDS
     def __init__(self, values):
@@ -72,14 +69,18 @@ class OdinSite(db.Model):
         db.session.commit()
         return self
 
-    # CRUD read: every key in FIELDS, None for one this row has no text for yet
+    # CRUD read: every key in FIELDS, None for one this row has no text for
     def read(self):
-        return {key: getattr(self, key) for key in FIELDS}
+        return {key: None if key in self.missing() else getattr(self, key) for key in FIELDS}
+
+    def missing(self):
+        """The keys this row has no text for: NULL, empty or only spaces."""
+        return [key for key in FIELDS if not (getattr(self, key) or '').strip()]
 
     def fill_missing(self, values):
         """Writes the checked values into the fields this row has no text for, and leaves the rest
         as they are. Returns the keys it filled."""
-        filled = [key for key in FIELDS if not (getattr(self, key) or '').strip()]
+        filled = self.missing()
         for key in filled:
             setattr(self, key, values[key])
         if filled:
@@ -94,8 +95,9 @@ class OdinSite(db.Model):
     @staticmethod
     def validate(inputs):
         """(values, error) from the seed's JSON. Every key in FIELDS must be text that is not blank and
-        fits its column, because MySQL refuses what SQLite would quietly store. A link must be an
-        https address and an image must be a file in odin/images/, so a page never gets one it cannot use."""
+        fits its column, because MySQL refuses what SQLite would quietly store. A link must be a full
+        https address and an image must be a file in odin/images/, so the seed refuses one a page
+        could not use."""
         if not isinstance(inputs, dict):
             return None, "the site basics must be a JSON object"
         values = {}
@@ -111,7 +113,7 @@ class OdinSite(db.Model):
             if len(value) > max_len:
                 return None, f"{key} must be at most {max_len} characters"
             if kind == LINK and not _is_https_link(value):
-                return None, f"{key} must be a link that starts with https://"
+                return None, f"{key} must be a full https link, such as https://example.com/page"
             if kind == IMAGE and image_file(value) is None:
                 return None, f"{key} must name an image in odin/images/"
             values[key] = value
@@ -119,25 +121,37 @@ class OdinSite(db.Model):
 
 
 def _is_https_link(value):
-    """True for an https address with a host and nothing a browser would read as a second address."""
-    return value.startswith('https://') and len(value) > len('https://') and not any(c.isspace() or c in '"\'<>\\' for c in value)
+    """True for an https address that names a site, with no sign-in part and no character that
+    could end the address early where a page puts it."""
+    if not value.isprintable() or any(c.isspace() or c in '"\'<>\\' for c in value):
+        return False
+    try:
+        parts = urlsplit(value)
+    except ValueError:
+        return False
+    return parts.scheme == 'https' and bool(parts.hostname) and '@' not in parts.netloc
 
 
 def initOdinSite(path=SEED_FILE):
     """Creates the site's row from odin_site.json if there is none yet. If there is one, fills in only
     the fields it has no text for, which is how a field added later reaches a database that already
-    exists. Text that is saved is never replaced. Returns the keys it wrote. Safe to run more than once."""
+    exists. Text that is saved is never replaced, and a row with nothing missing is left alone
+    without the file being read. Returns the keys it wrote. Safe to run more than once."""
+    site = OdinSite.current()
+    if site is not None and not site.missing():
+        return []
     name = os.path.basename(path)
     try:
         # utf-8 whatever the server's locale is, so accented text is not stored garbled
         with open(path, encoding="utf-8") as f:
             seed = json.load(f)
+    except OSError as e:
+        raise ValueError(f"{name}: cannot be read ({e.strerror})")
     except ValueError as e:  # text that is not JSON, or not utf-8
         raise ValueError(f"{name}: is not valid JSON ({e})")
     values, error = OdinSite.validate(seed)
     if error:
         raise ValueError(f"{name}: {error}")
-    site = OdinSite.current()
     if site is None:
         OdinSite(values).create()
         return list(FIELDS)
