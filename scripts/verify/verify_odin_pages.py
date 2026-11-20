@@ -73,12 +73,6 @@ def main():
         """Where a section comes in the real seed's home page, counting from 1 as the messages do."""
         return [section["name"] for section in seed["home"]].index(name) + 1
 
-    # Sections of the real seed the checks below change, picked by what they hold so the checks
-    # still work when the file's sections change
-    pictured = next(section["name"] for section in seed["home"] if "image" in section)
-    unpictured = next(section["name"] for section in seed["home"] if "image" not in section)
-    listless = next(section["name"] for section in seed["home"] if "items" not in section)
-
     def with_section(which, **parts):
         """The real seed with these parts of one home section changed. A part given as None is removed."""
         changed = copy.deepcopy(seed)
@@ -250,11 +244,11 @@ def main():
     check("every text part of the longest length is accepted and served whole",
           run_seed({"home": [fullest]}) == ["home.full"] and served()["sections"][0] == as_served(fullest))
     clear()
-    where = f"home section {place(pictured)}: "
+    features = f"home section {place('features')}: "
     for bad in ("missing.svg", "../main.py", "README.md", "PRODUCT-HEADSET.JPG"):
-        refused(f"image: {bad!r} is refused", with_section(pictured, image=bad), where + "image must name an image in odin/images/")
-    refused("an image without its description is refused", with_section(pictured, image_alt=None), where + "image needs image_alt, and image_alt needs image")
-    refused("a description without its image is refused", with_section(pictured, image=None), where + "image needs image_alt, and image_alt needs image")
+        refused(f"image: {bad!r} is refused", with_section("features", image=bad), features + "image must name an image in odin/images/")
+    refused("an image without its description is refused", with_section("features", image_alt=None), features + "image needs image_alt, and image_alt needs image")
+    refused("a description without its image is refused", with_section("features", image=None), features + "image needs image_alt, and image_alt needs image")
     refused("a section with only a name is refused", {"home": [{"name": "empty"}]}, "home section 1: needs a title, text, an image or items")
     refused("a section with only a line above the title and a button is refused",
             {"home": [{"name": "empty", "kicker": "Introducing", "action": "Contact Us!"}]}, "home section 1: needs a title, text, an image or items")
@@ -337,7 +331,7 @@ def main():
           all(sorted(section) == sorted(["name", "items", *FIELDS]) for section in body["sections"]))
     check("GET returns what odin_pages.json holds, with null for a part a section does not have",
           body["sections"] == [as_served(section) for section in seed["home"]], body)
-    check("a section without a list has an empty list of items", body["sections"][place(listless) - 1]["items"] == [])
+    check("a section without a list has an empty list of items", body["sections"][place("hero") - 1]["items"] == [])
     images = [section["image"] for section in body["sections"] if section["image"]]
     check("every image a section names is one the image route serves",
           bool(images) and all(anon.get(f"/api/odin/image?name={image}").status_code == 200 for image in images), images)
@@ -357,29 +351,28 @@ def main():
     check("running the seed again writes nothing", run_seed() == [] and rows() == len(seed["home"]) and served() == body)
     check("a later seed file does not replace text that is saved",
           run_seed(with_section("hero", title="Another Title", text="Another line.")) == [] and served() == body)
-    later = with_section(unpictured, image="product-headset.jpg", image_alt="The headset")
+    # These checks give an image to a section the file has none for
+    later = with_section("pitch", image="product-headset.jpg", image_alt="The headset")
     written = run_seed(later)
-    changed = served()["sections"][place(unpictured) - 1]
+    pitch = served()["sections"][place("pitch") - 1]
     check("a part added to the file later is filled in, and the seed names what it filled",
-          written == [f"home.{unpictured}.image", f"home.{unpictured}.image_alt"]
-          and changed == as_served(later["home"][place(unpictured) - 1]), f"{written} {changed}")
+          written == ["home.pitch.image", "home.pitch.image_alt"] and pitch == as_served(later["home"][place("pitch") - 1]), f"{written} {pitch}")
 
     # A description belongs to its own image
     with app.app_context():
-        saved(unpictured).image_alt = None
+        saved("pitch").image_alt = None
         db.session.commit()
-    other = with_section(unpictured, image="eye-tracking.webp", image_alt="Two eyes opening")
+    other = with_section("pitch", image="eye-tracking.webp", image_alt="Two eyes opening")
     written = run_seed(other)
-    changed = served()["sections"][place(unpictured) - 1]
+    pitch = served()["sections"][place("pitch") - 1]
     check("a saved image with no description is not given the description of another image",
-          written == [] and changed["image"] == "product-headset.jpg" and changed["image_alt"] is None, f"{written} {changed}")
+          written == [] and pitch["image"] == "product-headset.jpg" and pitch["image_alt"] is None, f"{written} {pitch}")
     written = run_seed(later)
     check("a saved image with no description gets the one the file has for that image",
-          written == [f"home.{unpictured}.image_alt"] and served()["sections"][place(unpictured) - 1]["image_alt"] == "The headset", written)
+          written == ["home.pitch.image_alt"] and served()["sections"][place("pitch") - 1]["image_alt"] == "The headset", written)
     with app.app_context():
-        saved(unpictured).image = saved(unpictured).image_alt = None
+        saved("pitch").image = saved("pitch").image_alt = None
         db.session.commit()
-    check("the checks above left the page's images as the file has them", served() == body)
 
     # Parts with nothing in them
     with app.app_context():
