@@ -151,11 +151,19 @@ holds and its size:
 - `image` names a file in `odin/images/`, and `image_alt` says what it shows. Give both or neither.
 - `link` is the address of another site, which the section's image leads to. It must be a full
   `https://` address, and a section with a `link` needs an `image`.
-- `items` is a list for a section that shows several of one thing, such as statistics or features.
-  Each item needs a `title` and a `text`. Leave `items` out of a section that has no list.
+- `items` is a list for a section that shows several of one thing, such as statistics, features
+  or the people on the team. Each item needs a `title` and a `text`. It can also have a `subtitle`
+  (a line under the title, such as a role), a `note` (a second line, such as a degree), an `image`
+  with its `image_alt`, and a `link` to another site, such as a profile. An item is saved and sent
+  with only the parts it was given. Leave `items` out of a section that has no list.
 
 A section needs a title, text, an image or items. A part that is not listed here is refused, so a
 misspelled one is not dropped without a word. So is a key given twice in one object.
+
+The `about` page has three sections: `intro` (the page's title), `mission` (its paragraphs, with a
+blank line between them) and `team`. Each person on the team is an item: the name is the `title`,
+the role the `subtitle`, the degree the `note` and the bio the `text`. `action` on `team` is the
+word on the control that opens a bio. A person without a photo has no `image`.
 
 The `contact` page has five sections. `intro` is the Contact Us page's title and the line under it.
 `details` is the block the home page and the Contact Us page both show: its heading and the partner

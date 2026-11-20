@@ -59,7 +59,7 @@ def main():
     import init_odin_site
     from model import account_types
     from model.user import User
-    from model.odin_section import OdinSection, initOdinSections, FIELDS, ITEM_FIELDS, NAME_MAX, SEED_FILE
+    from model.odin_section import OdinSection, initOdinSections, FIELDS, ITEM_FIELDS, ITEM_OPTIONAL_FIELDS, NAME_MAX, SEED_FILE
     app.config["TESTING"] = True
 
     with open(SEED_FILE, encoding="utf-8") as fh:
@@ -282,6 +282,32 @@ def main():
         refused(f"an item whose {key} is longer than {size} characters is refused",
                 with_section("statistics", items=[item, {**item, key: "x" * (size + 1)}]), stats + f"item 2: {key} must be at most {size} characters")
 
+    # The parts an item can also have, such as a team member's role, photo and profile
+    for key, (kind, size) in ITEM_OPTIONAL_FIELDS.items():
+        refused(f"an item whose {key} is not text is refused",
+                with_section("statistics", items=[item, {**item, key: 50}]), stats + f"item 2: {key} must be text")
+        refused(f"an item whose {key} is blank is refused",
+                with_section("statistics", items=[item, {**item, key: " "}]), stats + f"item 2: {key} must not be blank")
+        refused(f"an item whose {key} is longer than {size} characters is refused",
+                with_section("statistics", items=[item, {**item, key: "x" * (size + 1)}]), stats + f"item 2: {key} must be at most {size} characters")
+    pair = stats + "item 1: image needs image_alt, and image_alt needs image"
+    refused("an item with an image and no description is refused", with_section("statistics", items=[{**item, "image": "product-headset.jpg"}]), pair)
+    refused("an item with a description and no image is refused", with_section("statistics", items=[{**item, "image_alt": "The headset"}]), pair)
+    refused("an item whose image is not in odin/images/ is refused",
+            with_section("statistics", items=[{**item, "image": "missing.webp", "image_alt": "Nobody"}]), stats + "item 1: image must name an image in odin/images/")
+    refused("an item whose link is not a full https address is refused",
+            with_section("statistics", items=[{**item, "link": "www.linkedin.com/in/someone"}]),
+            stats + "item 1: link must be a full https link, such as https://example.com/page")
+    person = {"title": "A PERSON", "subtitle": "Their role", "note": "First degree\nSecond degree", "text": "About them.",
+              "image": "product-headset.jpg", "image_alt": "A person, their role", "link": "https://profiles.example/a-person"}
+    check("an item is saved and served with the parts it was given, and no others",
+          run_seed({"home": [{"name": "team", "items": [person, item]}]}) == ["home.team"]
+          and served()["sections"][0]["items"] == [person, item])
+    clear()
+    check("an item can have a link and no image, as a person without a photo does",
+          run_seed({"home": [{"name": "team", "items": [{"title": "A PERSON", "text": "About them.", "link": "https://profiles.example/a-person"}]}]}) == ["home.team"])
+    clear()
+
     # All or nothing
     refused("a problem on a later page saves nothing from the pages before it",
             {"home": seed["home"], "about": [{"name": "empty"}]}, "about section 1: needs a title, text, an image or items")
@@ -347,7 +373,8 @@ def main():
     labels = [section["name"] for section in seed["contact"] if section["name"] in site]
     check("each contact label is a section named for the site basic it labels, which the site route sends with text",
           labels == ["phone", "email", "address"] and all(isinstance(site[name], str) and site[name].strip() for name in labels), labels)
-    images = [section["image"] for sections in seed.values() for section in sections if section.get("image")]
+    images = [holder["image"] for sections in seed.values() for section in sections
+              for holder in (section, *section.get("items", [])) if holder.get("image")]
     check("every image a section names is one the image route serves",
           bool(images) and all(anon.get(f"/api/odin/image?name={image}").status_code == 200 for image in images), images)
     # MySQL compares text without regard to case or accents, so a name that is not well formed must
@@ -444,9 +471,10 @@ def main():
         db.session.commit()
     check("the checks above left the home page as the file has it", served() == body)
 
-    check("a page added to the file later is saved beside the first, and each is served by its own name",
-          run_seed({**seed, "about": [{"name": "mission", "title": "Our mission"}]}) == ["about.mission"]
-          and served("about") == {"page": "about", "sections": [as_served({"name": "mission", "title": "Our mission"})]}
+    # The real file has an about page now, so this one takes a name no real page has
+    check("a page added to the file later is saved beside the others, and each is served by its own name",
+          run_seed({**seed, "added_later": [{"name": "mission", "title": "Our mission"}]}) == ["added_later.mission"]
+          and served("added_later") == {"page": "added_later", "sections": [as_served({"name": "mission", "title": "Our mission"})]}
           and served() == body)
 
     for method in ("post", "put", "patch", "delete"):
