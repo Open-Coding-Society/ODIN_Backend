@@ -158,14 +158,22 @@ holds and its size:
 A section needs a title, text, an image or items. A part that is not listed here is refused, so a
 misspelled one is not dropped without a word. So is a key given twice in one object.
 
-The `about` page has two sections: `intro` (the page's title) and `mission` (its paragraphs, with a
-blank line between them, and the photo beside them). The current site also lists the team there.
-The rebuilt site does not, so the seed has no section for it.
+The `home` page goes beyond the current site with three sections of its own: `steps` (how an
+assessment works, one item per step), `demo` (the words around the "follow the dot" demo: its
+button is `action`, and its one item labels the score) and `compare` (symptom checklists beside
+ODIN, one item each). Their words come from ODIN's own text and the team's research brief (OCS-VR issue 1), with no numbers or claims beyond those.
 
-The `contact` page has five sections. `intro` is the Contact Us page's title and the line under it.
-`details` is the block the home page and the Contact Us page both show: its heading and the partner
-logo with its link. `phone`, `email` and `address` each hold the label for the site basic of the
-same name. The number, the email and the address themselves stay in `odin_site.json`.
+The `about` page has three sections: `intro` (the page's title), `mission` (its paragraphs, with a
+blank line between them) and `pillars` (what drives the mission, one item each, taken from the
+mission's own words). The current site also lists the team there. The rebuilt site does not, so
+the seed has no section for it. The pages no longer show the photos the sections name; they draw
+their own pictures, so `image` stays in the file only for the record.
+
+The `contact` page has six sections. `intro` is the Contact Us page's title and the line under it.
+`details` is the block the home page and the Contact Us page both show: its heading and the
+partner's link (the page shows the link, not the logo). `phone`, `email` and `address` each hold
+the label for the site basic of the same name. The number, the email and the address themselves
+stay in `odin_site.json`. `partner` names the partner the link leads to, with a line about it.
 
 Like `odin_site.json`, this file is a seed. It is not read at startup:
 

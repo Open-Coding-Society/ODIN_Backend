@@ -20,10 +20,10 @@ REAL_DB = os.path.join(REPO, "instance", "volumes", "user_management.db")
 PASSWORD = "Aa1!" + secrets.token_urlsafe(16)
 URL = "/api/odin/page"
 HOME = URL + "?name=home"
-# The home page's sections, in the order the current site shows them
-HOME_ORDER = ["hero", "statistics", "features", "how_it_works", "pitch", "fda"]
+# The home page's sections, in the order the page shows them
+HOME_ORDER = ["hero", "statistics", "features", "how_it_works", "steps", "demo", "compare", "pitch", "fda"]
 # The About page's sections, in the same way
-ABOUT_ORDER = ["intro", "mission"]
+ABOUT_ORDER = ["intro", "mission", "pillars"]
 FILE = "odin_pages.json: "
 _failures = []
 
@@ -356,19 +356,21 @@ def main():
     body = r.get_json()
     check("GET needs no login", r.status_code == 200, r.status_code)
     check("GET returns the page's name and its sections", sorted(body) == ["page", "sections"] and body["page"] == "home", body)
-    check("the home page's sections come in the order the current site shows them", order() == HOME_ORDER, order())
+    check("the home page's sections come in the order the page shows them", order() == HOME_ORDER, order())
     check("each section has its name, every key in FIELDS and its items, and nothing else",
           all(sorted(section) == sorted(["name", "items", *FIELDS]) for section in body["sections"]))
     check("GET returns what odin_pages.json holds, with null for a part a section does not have",
           body["sections"] == [as_served(section) for section in seed["home"]], body)
     check("a section without a list has an empty list of items", body["sections"][place("hero") - 1]["items"] == [])
     about = served("about")["sections"]
-    check("the About page has its intro and its mission, in that order", [section["name"] for section in about] == ABOUT_ORDER, about)
+    check("the About page has its intro, its mission and its pillars, in that order", [section["name"] for section in about] == ABOUT_ORDER, about)
     # The frontend's About page shows these parts, and shows nothing when one is missing
     parts = {section["name"]: section for section in about}
-    intro, mission = parts.get("intro", {}), parts.get("mission", {})
+    intro, mission, pillars = parts.get("intro", {}), parts.get("mission", {}), parts.get("pillars", {})
     check("the intro has the page's title and the mission has its text", bool(intro.get("title")) and bool(mission.get("text")), about)
-    check("no section of the About page has a list", all(section["items"] == [] for section in about), about)
+    check("only the pillars section of the About page has a list, with a title and text for each pillar",
+          all(section["items"] == [] for section in about if section["name"] != "pillars")
+          and bool(pillars.get("items")) and all(item.get("title") and item.get("text") for item in pillars.get("items", [])), about)
     check("the mission comes with the photo the site shows beside it, and what the photo shows",
           bool(mission.get("image")) and bool(mission.get("image_alt")), mission)
     for page, sections in seed.items():

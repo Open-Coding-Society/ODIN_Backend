@@ -38,6 +38,36 @@
       "image_alt": "Eye Tracking"
     },
     {
+      "name": "steps",
+      "kicker": "From the sideline to a result",
+      "title": "How an assessment works",
+      "items": [
+        { "title": "Put on the headset", "text": "The portable headset is ready at the point of care, right where the athlete is." },
+        { "title": "Take the visual test", "text": "Eye-tracking software captures precise ocular metrics while the athlete's eyes follow what is on the screen." },
+        { "title": "Let the AI read it", "text": "Machine-learning algorithms turn those metrics into an accurate, comprehensive evaluation." },
+        { "title": "Share clear results", "text": "Interpretable results reach medical professionals, parents and coaches in real time." }
+      ]
+    },
+    {
+      "name": "demo",
+      "kicker": "Try the idea",
+      "title": "Follow the dot",
+      "text": "Press start, then follow the glowing dot with your mouse or finger for a few seconds. Your path is drawn over the dot's path, the way eye tracking compares where the eyes go with where the target went. This is a demonstration of the idea, not a medical test.",
+      "action": "Start the demo",
+      "items": [
+        { "title": "Close to the dot", "text": "How much of the time your path stayed close to the moving dot." }
+      ]
+    },
+    {
+      "name": "compare",
+      "kicker": "Objective, not self-reported",
+      "title": "A measurement from the eyes, not an answer from the athlete",
+      "items": [
+        { "title": "Symptom checklists", "text": "Depend on what an athlete reports, and an athlete who wants to stay in the game can play symptoms down." },
+        { "title": "ODIN", "text": "Measures how the eyes actually move, for objective, unbiased results that support a medical professional's decision." }
+      ]
+    },
+    {
       "name": "pitch",
       "title": "Revolutionizing Concussion Care Across All Ages",
       "text": "Experience the future of concussion care with ODIN’s advanced, data-driven assessments. Our objective evaluations provide unbiased, precise results empowering medical professionals with the crucial information needed for informed decision-making. Protect the well-being of athletes at every level with technology that sets a new standard in sports safety."
@@ -58,6 +88,16 @@
       "text": "At ODIN Diagnostics we are committed to making a significant leap forward in brain health. Our team comprises a diverse group of interdisciplinary engineers, entrepreneurs, and athletes united by a shared passion for creating a safer future and driving meaningful change.\n\nWe understand the complexities of concussions and are committed to addressing these challenges head-on. Our mission is to redefine concussion care to preserve brain health. We aim to prevent further damage after injury through early detection and intervention and by guiding evidence-based treatments to reduce long-term effects.\n\nWe are driven to make a lasting impact and enhance safety across all areas where brain injuries occur.",
       "image": "headset-lens-close.webp",
       "image_alt": "The lens of a headset seen up close, with rings of green light across the glass."
+    },
+    {
+      "name": "pillars",
+      "kicker": "What drives us",
+      "title": "Better brain health after every hit",
+      "items": [
+        { "title": "Early detection", "text": "Find the signs of a concussion soon after an injury, so further damage can be prevented." },
+        { "title": "Early intervention", "text": "Give the people caring for an athlete clear information when it matters most." },
+        { "title": "Evidence-based care", "text": "Guide treatment with data to reduce long-term effects." }
+      ]
     }
   ],
   "contact": [
@@ -84,6 +124,12 @@
     {
       "name": "address",
       "title": "Address:"
+    },
+    {
+      "name": "partner",
+      "kicker": "Supported by",
+      "title": "EvoNexus",
+      "text": "The San Diego incubator that is home to ODIN's office."
     }
   ]
 }
