@@ -184,12 +184,14 @@ or none:
   added to the file later reaches the database, but changing wording in the file does not change
   text that is already saved.
 - A section's `items` are one part. A saved list is left as it is, so a change to one item in the
-  file, such as a corrected number, does not reach a database that already has the list. To bring a saved list up to date, set that row's `items` to `[]` and run
+  file, such as a corrected number, does not reach a database that already has the list. To bring a
+  saved list up to date, set that row's `items` to `[]` and run
   `python scripts/init_odin_site.py`, which fills the list again from the file.
 - The file decides the order of a page's sections.
 - A section that was removed from the file, or renamed in it, stays in the database and on the
   page. Delete its row to take it off. The `about` page's `team` section left the file this way, so
-  a database seeded while it was there still sends it until this is run:
+  a database seeded while it was there still sends it, naming photos that are no longer in
+  `odin/images/`, until this is run:
   `DELETE FROM odin_section WHERE page = 'about' AND name = 'team';`
 
 To change wording a database already holds, change it in the file and in the saved row (a database

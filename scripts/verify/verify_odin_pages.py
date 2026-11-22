@@ -292,9 +292,9 @@ def main():
         refused(f"an item whose {key} is longer than {size} characters is refused",
                 with_section("statistics", items=[item, {**item, key: "x" * (size + 1)}]), stats + f"item 2: {key} must be at most {size} characters")
 
-    # An item is a title and a text. The parts a person on the team once had are gone with the team.
+    # An item is a title and a text only, so a page never gets a part of an item it has no place for
     for key in ("subtitle", "note", "image", "image_alt", "link"):
-        refused(f"an item with a {key} is refused", with_section("statistics", items=[{**item, key: "x"}]),
+        refused(f"an item with the part {key} is refused", with_section("statistics", items=[{**item, key: "x"}]),
                 stats + f"item 1: an item has no part named {key}")
     refused("a part of an item given as null is refused, the same as one not given",
             with_section("statistics", items=[{**item, "text": None}]), stats + "item 1: text is required")
@@ -363,12 +363,14 @@ def main():
           body["sections"] == [as_served(section) for section in seed["home"]], body)
     check("a section without a list has an empty list of items", body["sections"][place("hero") - 1]["items"] == [])
     about = served("about")["sections"]
-    check("the About page has its title and its mission, in that order, and no list of people",
-          [section["name"] for section in about] == ABOUT_ORDER and all(section["items"] == [] for section in about), about)
-    # The frontend's About page shows the mission beside a photo, and shows nothing when it is missing
-    mission = next(section for section in about if section["name"] == "mission")
+    check("the About page has its intro and its mission, in that order", [section["name"] for section in about] == ABOUT_ORDER, about)
+    # The frontend's About page shows these parts, and shows nothing when one is missing
+    parts = {section["name"]: section for section in about}
+    intro, mission = parts.get("intro", {}), parts.get("mission", {})
+    check("the intro has the page's title and the mission has its text", bool(intro.get("title")) and bool(mission.get("text")), about)
+    check("no section of the About page has a list", all(section["items"] == [] for section in about), about)
     check("the mission comes with the photo the site shows beside it, and what the photo shows",
-          bool(mission["image"]) and bool(mission["image_alt"]), mission)
+          bool(mission.get("image")) and bool(mission.get("image_alt")), mission)
     for page, sections in seed.items():
         check(f"GET for the {page} page returns what the file holds for it",
               served(page) == {"page": page, "sections": [as_served(section) for section in sections]}, served(page))
@@ -376,8 +378,7 @@ def main():
     labels = [section["name"] for section in seed["contact"] if section["name"] in site]
     check("each contact label is a section named for the site basic it labels, which the site route sends with text",
           labels == ["phone", "email", "address"] and all(isinstance(site[name], str) and site[name].strip() for name in labels), labels)
-    images = [holder["image"] for sections in seed.values() for section in sections
-              for holder in (section, *section.get("items", [])) if holder.get("image")]
+    images = [section["image"] for sections in seed.values() for section in sections if section.get("image")]
     check("every image a section names is one the image route serves",
           bool(images) and all(anon.get(f"/api/odin/image?name={image}").status_code == 200 for image in images), images)
     # MySQL compares text without regard to case or accents, so a name that is not well formed must
