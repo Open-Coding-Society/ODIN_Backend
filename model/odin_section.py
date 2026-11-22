@@ -25,20 +25,11 @@ FIELDS = {
     'link': (LINK, 255),       # the address of another site, which the section's image leads to
 }
 
-# The parts every item has. An item is one thing in a section's list, such as a statistic, a
-# feature or a person on the team. Both parts are required.
-ITEM_REQUIRED_FIELDS = {
+# The parts of an item. An item is one thing in a section's list, such as a statistic or a
+# feature. Both parts are required.
+ITEM_FIELDS = {
     'title': (TEXT, 100),
     'text': (TEXT, 2000),
-}
-
-# The parts an item can also have. An item is saved with only the parts it was given.
-ITEM_OPTIONAL_FIELDS = {
-    'subtitle': (TEXT, 255),   # a line under the title, such as a person's role
-    'note': (TEXT, 255),       # a short line of facts about the item, such as a person's degrees
-    'image': (IMAGE, 100),
-    'image_alt': (TEXT, 255),
-    'link': (LINK, 255),       # the address of another site about the item, such as a profile
 }
 
 
@@ -60,8 +51,7 @@ class OdinSection(db.Model):
         name (db.Column): The section's name, which no other section of the page has, such as hero.
         position (db.Column): Where the section comes on its page, counting from 0.
         kicker ... link (db.Column): One column per key in FIELDS.
-        items (db.Column): The section's list. Each item holds the keys in ITEM_REQUIRED_FIELDS, and those
-            of ITEM_OPTIONAL_FIELDS it was given.
+        items (db.Column): The section's list. Each item holds the keys in ITEM_FIELDS.
     """
     __tablename__ = 'odin_section'
     __table_args__ = (db.UniqueConstraint('page', 'name', name='uq_odin_section_page_name'),)
@@ -196,20 +186,16 @@ def _checked_items(items):
     for number, item in enumerate(items, start=1):
         if not isinstance(item, dict):
             return None, f"item {number} must be a JSON object"
-        unknown = sorted(set(item) - {*ITEM_REQUIRED_FIELDS, *ITEM_OPTIONAL_FIELDS})
+        unknown = sorted(set(item) - set(ITEM_FIELDS))
         if unknown:
             return None, f"item {number}: an item has no part named {unknown[0]}"
         values = {}
-        for key, (kind, max_len) in {**ITEM_REQUIRED_FIELDS, **ITEM_OPTIONAL_FIELDS}.items():
+        for key, (kind, max_len) in ITEM_FIELDS.items():
             if item.get(key) is None:
-                if key in ITEM_REQUIRED_FIELDS:
-                    return None, f"item {number}: {key} is required"
-                continue
+                return None, f"item {number}: {key} is required"
             values[key], problem = checked_value(item[key], kind, max_len)
             if problem:
                 return None, f"item {number}: {key} {problem}"
-        if ('image' in values) != ('image_alt' in values):
-            return None, f"item {number}: image needs image_alt, and image_alt needs image"
         checked.append(values)
     return checked, None
 

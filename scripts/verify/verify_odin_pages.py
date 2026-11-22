@@ -61,7 +61,7 @@ def main():
     import init_odin_site
     from model import account_types
     from model.user import User
-    from model.odin_section import OdinSection, initOdinSections, FIELDS, ITEM_REQUIRED_FIELDS, ITEM_OPTIONAL_FIELDS, NAME_MAX, SEED_FILE
+    from model.odin_section import OdinSection, initOdinSections, FIELDS, ITEM_FIELDS, NAME_MAX, SEED_FILE
     app.config["TESTING"] = True
 
     with open(SEED_FILE, encoding="utf-8") as fh:
@@ -282,7 +282,7 @@ def main():
     refused("an item that is not an object is refused", with_section("statistics", items=[item, "50%"]), stats + "item 2 must be a JSON object")
     refused("a part an item does not have is refused",
             with_section("statistics", items=[{**item, "value": "50%"}]), stats + "item 1: an item has no part named value")
-    for key, (kind, size) in ITEM_REQUIRED_FIELDS.items():
+    for key, (kind, size) in ITEM_FIELDS.items():
         without = {k: v for k, v in item.items() if k != key}
         refused(f"an item without {key} is refused", with_section("statistics", items=[item, without]), stats + f"item 2: {key} is required")
         refused(f"an item whose {key} is not text is refused",
@@ -292,45 +292,16 @@ def main():
         refused(f"an item whose {key} is longer than {size} characters is refused",
                 with_section("statistics", items=[item, {**item, key: "x" * (size + 1)}]), stats + f"item 2: {key} must be at most {size} characters")
 
-    # The parts an item can also have, such as a team member's role, photo and profile
-    for key, (kind, size) in ITEM_OPTIONAL_FIELDS.items():
-        refused(f"an item whose {key} is not text is refused",
-                with_section("statistics", items=[item, {**item, key: 50}]), stats + f"item 2: {key} must be text")
-        refused(f"an item whose {key} is blank is refused",
-                with_section("statistics", items=[item, {**item, key: " "}]), stats + f"item 2: {key} must not be blank")
-        refused(f"an item whose {key} is longer than {size} characters is refused",
-                with_section("statistics", items=[item, {**item, key: "x" * (size + 1)}]), stats + f"item 2: {key} must be at most {size} characters")
-    pair = stats + "item 1: image needs image_alt, and image_alt needs image"
-    refused("an item with an image and no description is refused", with_section("statistics", items=[{**item, "image": "product-headset.jpg"}]), pair)
-    refused("an item with a description and no image is refused", with_section("statistics", items=[{**item, "image_alt": "The headset"}]), pair)
-    refused("an item whose image is not in odin/images/ is refused",
-            with_section("statistics", items=[{**item, "image": "missing.webp", "image_alt": "Nobody"}]), stats + "item 1: image must name an image in odin/images/")
-    refused("an item whose link is not a full https address is refused",
-            with_section("statistics", items=[{**item, "link": "www.linkedin.com/in/someone"}]),
-            stats + "item 1: link must be a full https link, such as https://example.com/page")
-    person = {"title": "A PERSON", "subtitle": "Their role", "note": "First degree\nSecond degree", "text": "About them.",
-              "image": "product-headset.jpg", "image_alt": "A person, their role", "link": "https://profiles.example/a-person"}
-    check("an item is saved and served with the parts it was given, and no others",
-          accepted({"home": [{"name": "team", "items": [person, item]}]}) == ["home.team"]
-          and served()["sections"][0]["items"] == [person, item])
-    clear()
-    check("an item can have a link and no image, as a person without a photo does",
-          accepted({"home": [{"name": "team", "items": [{"title": "A PERSON", "text": "About them.", "link": "https://profiles.example/a-person"}]}]}) == ["home.team"])
-    clear()
-    padded = {**person, "subtitle": "  Their role  ", "note": "\n First degree\nSecond degree \n", "image_alt": " A person, their role ", "link": " https://profiles.example/a-person "}
-    check("spaces around an item's other parts are trimmed, and a line break inside a note is kept",
-          accepted({"home": [{"name": "team", "items": [padded]}]}) == ["home.team"] and served()["sections"][0]["items"] == [person])
-    clear()
-    check("a part of an item given as null is left out, the same as one not given",
-          accepted({"home": [{"name": "team", "items": [{**item, "subtitle": None, "image": None, "image_alt": None}]}]}) == ["home.team"]
-          and served()["sections"][0]["items"] == [item])
-    clear()
-    refused("an item whose other part is empty text is refused, not dropped",
-            with_section("statistics", items=[{**item, "subtitle": ""}]), stats + "item 1: subtitle must not be blank")
+    # An item is a title and a text. The parts a person on the team once had are gone with the team.
+    for key in ("subtitle", "note", "image", "image_alt", "link"):
+        refused(f"an item with a {key} is refused", with_section("statistics", items=[{**item, key: "x"}]),
+                stats + f"item 1: an item has no part named {key}")
+    refused("a part of an item given as null is refused, the same as one not given",
+            with_section("statistics", items=[{**item, "text": None}]), stats + "item 1: text is required")
     for label, bad in (("a NUL", "a\u0000b"), ("an escape character", "a\u001bb"), ("a character that turns the text around", "a\u202eb"), ("a carriage return", "a\rb")):
-        refused(f"text with {label} in it is refused", with_section("statistics", items=[{**item, "note": bad}]),
-                stats + "item 1: note has a character that does not show, such as a control character")
-    check("text with a tab in it is accepted", accepted({"home": [{"name": "team", "items": [{**item, "note": "one\ttwo"}]}]}) == ["home.team"])
+        refused(f"an item's text with {label} in it is refused", with_section("statistics", items=[{**item, "text": bad}]),
+                stats + "item 1: text has a character that does not show, such as a control character")
+    check("an item's text with a tab in it is accepted", accepted({"home": [{"name": "facts", "items": [{**item, "text": "one\ttwo"}]}]}) == ["home.facts"])
     clear()
 
     # All or nothing
@@ -470,7 +441,7 @@ def main():
 
     # A saved list is one part: a change to an item in the file does not reach it
     listed = seed["home"][place("statistics") - 1]
-    changed_items = [{**listed["items"][0], "subtitle": "Added later"}, *listed["items"][1:], {"title": "New", "text": "A new item"}]
+    changed_items = [{**listed["items"][0], "text": "Changed later"}, *listed["items"][1:], {"title": "New", "text": "A new item"}]
     written = run_seed(with_section("statistics", items=changed_items))
     check("a saved list is left as it is when the file's list changes", written == [] and served() == body, written)
 

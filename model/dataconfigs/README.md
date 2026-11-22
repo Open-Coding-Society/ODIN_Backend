@@ -151,13 +151,9 @@ holds and its size:
 - `image` names a file in `odin/images/`, and `image_alt` says what it shows. Give both or neither.
 - `link` is the address of another site, which the section's image leads to. It must be a full
   `https://` address, and a section with a `link` needs an `image`.
-- `items` is a list for a section that shows several of one thing, such as statistics, features
-  or the people on the team. Each item needs a `title` and a `text`. It can also have a `subtitle`
-  (a line under the title, such as a role), a `note` (a short line of facts, such as degrees), an
-  `image` with its `image_alt`, and a `link` to another site, such as a profile. An item's `link`
-  needs no `image`. An item is saved and sent with only the parts it was given.
-  `ITEM_REQUIRED_FIELDS` and `ITEM_OPTIONAL_FIELDS` list the parts and their sizes. Leave `items`
-  out of a section that has no list.
+- `items` is a list for a section that shows several of one thing, such as statistics or
+  features. Each item needs a `title` and a `text`, and has no other parts. `ITEM_FIELDS` lists
+  them and their sizes. Leave `items` out of a section that has no list.
 
 A section needs a title, text, an image or items. A part that is not listed here is refused, so a
 misspelled one is not dropped without a word. So is a key given twice in one object.
