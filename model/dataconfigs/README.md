@@ -162,15 +162,9 @@ holds and its size:
 A section needs a title, text, an image or items. A part that is not listed here is refused, so a
 misspelled one is not dropped without a word. So is a key given twice in one object.
 
-The `about` page has three sections: `intro` (the page's title), `mission` (its paragraphs, with a
-blank line between them, and the photo beside them) and `team`. Each person on the team is an item: the name is the `title`,
-the role the `subtitle`, the degrees the `note`, the bio the `text`, the photo the `image` and the
-LinkedIn profile the `link`. Two lines in a `note` have a line break between them. `action` on
-`team` is the word on the control that opens a bio. The seed has no words for a person's `link`,
-because the current site shows only an icon there. Connor Heffler has no `image` yet. His photo is
-held back until ODIN confirms it can be used; see `odin/images/README.md`. The team's names and
-bios came from the current site, so they are kept here. The rebuilt site's About page does not show
-the team (ODIN_Frontend issue 21); the section stays until the team decides whether to remove it.
+The `about` page has two sections: `intro` (the page's title) and `mission` (its paragraphs, with a
+blank line between them, and the photo beside them). The current site also lists the team there.
+The rebuilt site does not, so the seed has no section for it.
 
 The `contact` page has five sections. `intro` is the Contact Us page's title and the line under it.
 `details` is the block the home page and the Contact Us page both show: its heading and the partner
@@ -194,12 +188,13 @@ or none:
   added to the file later reaches the database, but changing wording in the file does not change
   text that is already saved.
 - A section's `items` are one part. A saved list is left as it is, so a change to one item in the
-  file, such as a photo for a person who had none, does not reach a database that already has the
-  list. To bring a saved list up to date, set that row's `items` to `[]` and run
+  file, such as a corrected number, does not reach a database that already has the list. To bring a saved list up to date, set that row's `items` to `[]` and run
   `python scripts/init_odin_site.py`, which fills the list again from the file.
 - The file decides the order of a page's sections.
 - A section that was removed from the file, or renamed in it, stays in the database and on the
-  page. Delete its row to take it off.
+  page. Delete its row to take it off. The `about` page's `team` section left the file this way, so
+  a database seeded while it was there still sends it until this is run:
+  `DELETE FROM odin_section WHERE page = 'about' AND name = 'team';`
 
 To change wording a database already holds, change it in the file and in the saved row (a database
 update). Bad data stops the seed with a message naming the file, the page and the section by its

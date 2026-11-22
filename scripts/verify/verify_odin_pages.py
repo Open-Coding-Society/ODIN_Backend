@@ -22,9 +22,8 @@ URL = "/api/odin/page"
 HOME = URL + "?name=home"
 # The home page's sections, in the order the current site shows them
 HOME_ORDER = ["hero", "statistics", "features", "how_it_works", "pitch", "fda"]
-# The About page's sections, in the same way, and how many people its team has
-ABOUT_ORDER = ["intro", "mission", "team"]
-TEAM_SIZE = 4
+# The About page's sections, in the same way
+ABOUT_ORDER = ["intro", "mission"]
 FILE = "odin_pages.json: "
 _failures = []
 
@@ -393,11 +392,8 @@ def main():
           body["sections"] == [as_served(section) for section in seed["home"]], body)
     check("a section without a list has an empty list of items", body["sections"][place("hero") - 1]["items"] == [])
     about = served("about")["sections"]
-    team = about[-1]["items"]
-    check("the About page's sections come in the order the current site shows them", [section["name"] for section in about] == ABOUT_ORDER, about)
-    check("the team has its four people, each with a name, role, degrees, bio and profile link",
-          len(team) == TEAM_SIZE and all({"title", "subtitle", "note", "text", "link"} <= set(person) for person in team), team)
-    check("a person's photo always comes with what it shows", all(("image" in person) == ("image_alt" in person) for person in team))
+    check("the About page has its title and its mission, in that order, and no list of people",
+          [section["name"] for section in about] == ABOUT_ORDER and all(section["items"] == [] for section in about), about)
     # The frontend's About page shows the mission beside a photo, and shows nothing when it is missing
     mission = next(section for section in about if section["name"] == "mission")
     check("the mission comes with the photo the site shows beside it, and what the photo shows",

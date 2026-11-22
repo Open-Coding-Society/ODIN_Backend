@@ -5,8 +5,8 @@ keeps no copy: a page loads each one from `GET /api/odin/image?name=<file name>`
 This folder is outside `static/`, so that route is the only address they have.
 
 Each file comes from an image on <https://odin-diagnostics.com/>, used with ODIN's
-agreement. The two logos are the original files. The other eight are smaller
-copies, because the originals are between 1.5 and 4.4 MB each.
+agreement. The two logos are the original files. The other five are smaller
+copies, because the originals are between 1.9 and 4.4 MB each.
 
 | File | From the current site | Shows |
 | --- | --- | --- |
@@ -16,9 +16,6 @@ copies, because the originals are between 1.5 and 4.4 MB each.
 | `headset-lens-close.webp` | `/images/hero/vr_green.png` | The same headset lens, closer. It sits beside the mission on the About page |
 | `product-headset.jpg` | `/images/capabilities/V3_ODIN2.jpg` | The ODIN headset |
 | `eye-tracking.webp` | `/images/eyetracking/EyeOpen.gif` | A short loop of two eyes opening |
-| `team-marina-zellers.webp` | `/images/about/marina_zellers.jpeg` | Marina Zellers |
-| `team-michael-noon.webp` | `/images/about/michael_noon.jpeg` | Michael Noon |
-| `team-connor-fourt.webp` | `/images/about/connor_fourt.jpeg` | Connor Fourt |
 | `partner-evonexus.png` | `/images/about/evo_nexus.png` | The EvoNexus logo in white, on a clear background |
 
 ## What was changed
@@ -31,10 +28,7 @@ Size and file type. The hero photo also has a thin line trimmed from its top and
   because a lower one left bands in the dark parts of the picture.
 - The lens close-up is a square cut from the right of the hero photo's original, around the
   lens, 1200 pixels each way. It is saved at the same high quality setting, for the same reason.
-- The headset photo is 1600 pixels wide and the team photos are 640 pixels square.
-- The team photos came round, with clear corners. Their files on the site are
-  PNG images named `.jpeg`. They are WebP here, which keeps the clear corners at
-  a small size.
+- The headset photo is 1600 pixels wide.
 - The eye loop has the same 46 frames and timing as the original GIF, saved as an
   animated WebP at about an eighth of the size.
 - The EvoNexus logo is 600 pixels square.
@@ -47,15 +41,10 @@ Size and file type. The hero photo also has a thin line trimmed from its top and
   photo, its license has to cover this site.
 - `logo-light.svg` is ODIN's own file, and its mark is black, so on a dark
   background only the name shows clearly. Ask ODIN for a version with a white mark.
-- Connor Heffler's photo is not here yet. The file on the current site
-  (`/images/about/connor_heffler_square.JPG`) is marked "Photo by Ruby Wallau for
-  CIE", copyright Ruby Wallau 2024. It can be added once ODIN confirms that the
-  photographer's permission covers this site, with the credit kept. When it is
-  added to his item in `odin_pages.json`, a database that already has the team
-  keeps its saved list: see "odin_pages.json" in `model/dataconfigs/README.md`
-  for how to bring that list up to date.
 - Two images on the current site are left out. `logo-2.svg` is a leftover logo
   from a website template, not ODIN's. `download (1).png` is a LinkedIn icon.
+- The four photos of the team in `/images/about/` are left out too. The rebuilt
+  site does not list the team.
 
 ## Adding an image
 
