@@ -1,5 +1,5 @@
 ### Read the site basics - expect 200 and an object with name, tagline, phone, email, address,
-### copyright, instagram, linkedin, logo_dark and logo_light
+### copyright, instagram, linkedin, logo_dark, logo_light, icon, notice_title and notice
 GET {{baseUrl}}/api/odin/site
 Accept: application/json
 
@@ -9,7 +9,7 @@ GET {{baseUrl}}/api/odin/pages
 Accept: application/json
 
 ### Read the home page - expect 200 and an object with page, title, description and sections, the
-### sections in the order the page shows them: hero, statistics, pitch, fda. The other pages are
+### sections in the order the page shows them: hero, statistics, pitch. The other pages are
 ### how_it_works, about, contact and not_found
 GET {{baseUrl}}/api/odin/page?name=home
 Accept: application/json

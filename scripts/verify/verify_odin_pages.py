@@ -21,7 +21,7 @@ PASSWORD = "Aa1!" + secrets.token_urlsafe(16)
 URL = "/api/odin/page"
 HOME = URL + "?name=home"
 # The home page's sections, in the order the page shows them
-HOME_ORDER = ["hero", "statistics", "pitch", "fda"]
+HOME_ORDER = ["hero", "statistics", "pitch"]
 # Every page the seed holds
 PAGES = ["home", "how_it_works", "about", "contact", "not_found"]
 FILE = "odin_pages.json: "

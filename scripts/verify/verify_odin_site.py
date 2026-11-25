@@ -142,7 +142,7 @@ def main():
               all(OdinSite.__table__.columns[key].type.length == size for key, (kind, size) in FIELDS.items()))
         added_later = [key for key in FIELDS if OdinSite.__table__.columns[key].nullable]
         check("the fields added after the table existed allow NULL, so db_upgrade.py can add them in place",
-              added_later == ["copyright", "instagram", "linkedin", "logo_dark", "logo_light"], added_later)
+              added_later == ["copyright", "instagram", "linkedin", "logo_dark", "logo_light", "icon", "notice_title", "notice"], added_later)
 
     anon = app.test_client()
     r = anon.get(URL)

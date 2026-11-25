@@ -104,11 +104,13 @@ It calls the routes on a throwaway copy of the app with no network and no provid
 The basics every page of the ODIN Diagnostics website shows. `FIELDS` in `model/odin_site.py` lists
 each key with what it holds and its size:
 
-- Text: `name`, `tagline`, `phone`, `email`, `address`, `copyright`.
+- Text: `name`, `tagline`, `phone`, `email`, `address`, `copyright`, and `notice_title` with
+  `notice`: the notice of the device's regulatory status, which every page carries. Its words
+  are the original site's, where it is a section of the home page.
 - Links, which must be full `https://` addresses: `instagram`, `linkedin`.
 - Images, which must name a file in `odin/images/`: `logo_dark` (the logo in black, for light
-  backgrounds) and `logo_light` (the name in white, for dark backgrounds; its mark is black, see
-  `odin/images/README.md`).
+  backgrounds), `logo_light` (the name in white, for dark backgrounds; its mark is black, see
+  `odin/images/README.md`) and `icon` (the small square mark a browser shows on the tab).
 
 Every key is required and must not be blank.
 
@@ -228,10 +230,13 @@ The `how_it_works` and `features` sections moved from `home` to the `how_it_work
 `home` hero now shows the headset photo. To bring a database seeded before that up to date:
 
 1. `python scripts/db_upgrade.py --check`, then `python scripts/db_upgrade.py`. It adds the
-   `image_link` column. Until it has run, `GET /api/odin/page` answers 500 for every page.
-2. `DELETE FROM odin_section WHERE page = 'home' AND name IN ('how_it_works', 'features')`
+   `image_link` column, and the `icon`, `notice_title` and `notice` columns of `odin_site`. Until
+   it has run, `GET /api/odin/page` and `GET /api/odin/site` answer 500.
+2. `DELETE FROM odin_section WHERE page = 'home' AND name IN ('how_it_works', 'features', 'fda')`.
+   The `fda` section's words are now the notice in the site basics.
 3. `UPDATE odin_section SET image = NULL, image_alt = NULL WHERE page = 'home' AND name = 'hero'`
-4. `python scripts/init_odin_site.py`. It adds the new pages and fills the hero's photo.
+4. `python scripts/init_odin_site.py`. It adds the new pages, fills the hero's photo and fills
+   the site's icon and notice.
 
 To change wording a database already holds, change it in the file and in the saved row (a database
 update). Bad data stops the seed with a message naming the file, the page and the section by its

@@ -5,13 +5,14 @@ keeps no copy: a page loads each one from `GET /api/odin/image?name=<file name>`
 This folder is outside `static/`, so that route is the only address they have.
 
 Each file comes from an image on <https://odin-diagnostics.com/>, used with ODIN's
-agreement. The two logos are the original files. The other seven are smaller
-copies, because the originals are between 1.5 and 4.4 MB each.
+agreement. The two logos and the site icon are the original files. The other
+seven are smaller copies, because the originals are between 1.5 and 4.4 MB each.
 
 | File | From the current site | Shows |
 | --- | --- | --- |
 | `logo-dark.svg` | `/images/logo/Odin-With-Text-Black.svg` | The ODIN mark and name in black, for light backgrounds |
 | `logo-light.svg` | `/images/logo/Odin-With-Text-White.svg` | The ODIN name in white with the mark in black |
+| `site-icon.png` | `/android-chrome-192x192.png` | The ODIN mark in black on white, 192 pixels square. The icon a browser shows on the tab |
 | `hero-headset-lens.webp` | `/images/hero/vr_green.png` | A close view of a headset lens in green light. The original site puts it behind the opening text of its home page |
 | `product-headset.jpg` | `/images/capabilities/V3_ODIN2.jpg` | The ODIN headset |
 | `eye-tracking.webp` | `/images/eyetracking/EyeOpen.gif` | A short loop of two eyes opening |
