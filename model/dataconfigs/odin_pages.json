@@ -45,7 +45,6 @@
   "how_it_works": [
     {
       "name": "how_it_works",
-      "title": "How it works",
       "text": "ODIN utilizes state-of-the-art eye-tracking software to capture precise ocular metrics during our assessments, which are then fed into our advanced machine-learning algorithms for accurate and comprehensive user evaluation.",
       "image": "eye-tracking.webp",
       "image_alt": "A close view of a person's eyes as they open."
@@ -69,7 +68,9 @@
           "title": "Data Sharing",
           "text": "Seamlessly share results with stakeholders such as other medical professionals, parents, and coaches."
         }
-      ]
+      ],
+      "image": "product-headset.jpg",
+      "image_alt": "The ODIN headset from the front: a white headset with the ODIN name and eye mark printed on its face."
     }
   ],
   "about": [
@@ -98,10 +99,10 @@
       "title": "Address:"
     },
     {
-      "name": "partner",
+      "name": "evonexus",
       "image": "partner-evonexus.png",
-      "image_alt": "EvoNexus",
-      "link": "https://evonexus.org/"
+      "image_alt": "EvoNexus Portfolio Company",
+      "image_link": "https://evonexus.org/"
     }
   ],
   "not_found": [

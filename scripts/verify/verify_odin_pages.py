@@ -267,13 +267,32 @@ def main():
     bad_links = ("http://evonexus.org/", "evonexus.org", "javascript:alert(1)", "https://", "https://user:pass@a.example/",
                  "https://a.example/x y", "https://a.example/\"onclick", "https://a.example/<x>", "/about/")
     for bad in bad_links:
-        refused(f"link: {bad!r} is refused", with_section("hero", link=bad),
-                hero + "link must be a full https link, such as https://example.com/page")
-    refused("a link without an image to follow it from is refused", with_section("statistics", link="https://example.com/"),
-            f"home section {place('statistics')}: link needs an image, which is what a visitor follows it from")
+        refused(f"link: {bad!r} is refused", with_section("hero", image_link=bad),
+                hero + "image_link must be a full https link, such as https://example.com/page")
+    refused("a link without an image to follow it from is refused", with_section("statistics", image_link="https://example.com/"),
+            f"home section {place('statistics')}: image_link needs an image, which is what a visitor follows it from")
     check("a section with an image and a link is saved, and the link is served",
-          run_seed({"home": [{"name": "partner", "image": "partner-evonexus.png", "image_alt": "EvoNexus", "link": "https://evonexus.org/"}]})
-          == ["home.partner"] and served()["sections"][0]["link"] == "https://evonexus.org/")
+          run_seed({"home": [{"name": "logo", "image": "partner-evonexus.png", "image_alt": "A logo", "image_link": "https://one.example/"}]})
+          == ["home.logo"] and served()["sections"][0]["image_link"] == "https://one.example/")
+    # The link belongs to its image, as the description does
+    with app.app_context():
+        OdinSection.query.filter_by(page="home", name="logo").first().image_link = None
+        db.session.commit()
+    other = {"name": "logo", "image": "product-headset.jpg", "image_alt": "Another", "image_link": "https://other.example/"}
+    check("a link the file gives to another image is not put on the saved image",
+          run_seed({"home": [other]}) == [] and served()["sections"][0]["image_link"] is None, served()["sections"][0])
+    same = {"name": "logo", "image": "partner-evonexus.png", "image_alt": "A logo", "image_link": "https://two.example/"}
+    check("a link the file gives to the saved image is filled in",
+          run_seed({"home": [same]}) == ["home.logo.image_link"] and served()["sections"][0]["image_link"] == "https://two.example/")
+    with app.app_context():
+        row = OdinSection.query.filter_by(page="home", name="logo").first()
+        row.image = row.image_alt = None
+        db.session.commit()
+    check("a saved link whose image was taken away is not served", served()["sections"][0]["image_link"] is None, served()["sections"][0])
+    check("when the seed fills the image again, the saved link is served again: saved text is never replaced",
+          run_seed({"home": [other]}) == ["home.logo.image", "home.logo.image_alt"]
+          and served()["sections"][0]["image"] == "product-headset.jpg"
+          and served()["sections"][0]["image_link"] == "https://two.example/", served()["sections"][0])
     clear()
     refused("a section with only a name is refused", {"home": [{"name": "empty"}]}, "home section 1: needs a title, text, an image or items")
     refused("a section with only a line above the title and a button is refused",
@@ -363,16 +382,16 @@ def main():
     mission = served("about")["sections"][0]["text"]
     check("the about page's mission keeps its three paragraphs, with a blank line between them",
           len(mission.split("\n\n")) == 3 and all(part.strip() for part in mission.split("\n\n")), mission)
-    partner = [section for section in served("contact")["sections"] if section["name"] == "partner"]
-    check("the contact page's partner logo carries its link",
-          len(partner) == 1 and partner[0]["link"] == "https://evonexus.org/" and partner[0]["image"] == "partner-evonexus.png", partner)
+    logo = [section for section in served("contact")["sections"] if section["name"] == "evonexus"]
+    check("the contact page's EvoNexus logo carries its link",
+          len(logo) == 1 and logo[0]["image_link"] == "https://evonexus.org/" and logo[0]["image"] == "partner-evonexus.png", logo)
     check("each section has its name, every key in FIELDS and its items, and nothing else",
           all(sorted(section) == sorted(["name", "items", *FIELDS]) for section in body["sections"]))
     check("GET returns what odin_pages.json holds, with null for a part a section does not have",
           body["sections"] == [as_served(section) for section in seed["home"]], body)
     check("a section without a list has an empty list of items", body["sections"][place("hero") - 1]["items"] == [])
-    images = [section["image"] for section in body["sections"] if section["image"]]
-    check("every image a section names is one the image route serves",
+    images = sorted({section["image"] for page in PAGES for section in served(page)["sections"] if section["image"]})
+    check("every image a section names, on any page, is one the image route serves",
           bool(images) and all(anon.get(f"/api/odin/image?name={image}").status_code == 200 for image in images), images)
     # MySQL compares text without regard to case or accents, so a name that is not well formed must
     # never reach the database: Home would find the home page there.

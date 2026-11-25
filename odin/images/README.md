@@ -22,9 +22,9 @@ copies, because the originals are between 1.5 and 4.4 MB each.
 
 ## What was changed
 
-Size and file type. The hero photo also has a thin line trimmed from its top and bottom edges.
+Size and file type. The lens photo also has a thin line trimmed from its top and bottom edges.
 
-- The hero photo is 1920 pixels wide. The original has a thin grey line along its top edge
+- The lens photo (`hero-headset-lens.webp`) is 1920 pixels wide. The original has a thin grey line along its top edge
   and a white one along its bottom edge. Two rows of pixels are trimmed from the top and six
   from the bottom, out of 2820, so both are gone. It is saved at a high quality setting,
   because a lower one left bands in the dark parts of the picture.
@@ -38,7 +38,7 @@ Size and file type. The hero photo also has a thin line trimmed from its top and
 
 ## Things to know
 
-- The hero photo's original was checked for a credit before it was added. Its embedded
+- The lens photo's original was checked for a credit before it was added. Its embedded
   information holds three dates, all 20 August 2024, and no photographer, copyright or
   license. Ask ODIN where the photo came from. If it is a stock photo, its license has to
   cover this site.
