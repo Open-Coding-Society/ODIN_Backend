@@ -305,15 +305,16 @@ def main():
         code = init_odin_site.main()
     printed = out.getvalue().strip().splitlines()
     check("init_odin_site.py seeds an empty database, and prints what each seed did",
-          code == 0 and rows() == len(seed["home"]) and len(printed) == 2 and "home.hero" in printed[1], printed)
+          code == 0 and rows() == len(seed["home"]) and len(printed) == 3 and "home.hero" in printed[2], printed)
     code, message = init_odin_site.seed_sections()
     check("init_odin_site.py run again changes nothing, and says so", code == 0 and rows() == len(seed["home"]) and "Nothing changed" in message, message)
     out = io.StringIO()
     with contextlib.redirect_stdout(out), mock.patch.object(init_odin_site, "initOdinSections", side_effect=ValueError("odin_pages.json: broken")):
         code = init_odin_site.main()
     printed = out.getvalue().strip().splitlines()
-    check("when one seed is refused the script still reports the other, and exits 1",
-          code == 1 and len(printed) == 2 and "Nothing changed" in printed[0] and printed[1] == "Not seeded. odin_pages.json: broken", printed)
+    check("when one seed is refused the script still reports the others, and exits 1",
+          code == 1 and len(printed) == 3 and all("Nothing changed" in line for line in printed[:2])
+          and printed[2] == "Not seeded. odin_pages.json: broken", printed)
     clear()
 
     # generate_data is a Flask command. standalone_mode=False makes it return here instead of exiting,
@@ -325,7 +326,8 @@ def main():
     r = anon.get(HOME)
     body = r.get_json()
     check("GET needs no login", r.status_code == 200, r.status_code)
-    check("GET returns the page's name and its sections", sorted(body) == ["page", "sections"] and body["page"] == "home", body)
+    check("GET returns the page's name, title, description and sections",
+          sorted(body) == ["description", "page", "sections", "title"] and body["page"] == "home", body)
     check("the home page's sections come in the order the current site shows them", order() == HOME_ORDER, order())
     check("each section has its name, every key in FIELDS and its items, and nothing else",
           all(sorted(section) == sorted(["name", "items", *FIELDS]) for section in body["sections"]))
@@ -411,7 +413,8 @@ def main():
 
     check("a page added to the file later is saved beside the first, and each is served by its own name",
           run_seed({**seed, "about": [{"name": "mission", "title": "Our mission"}]}) == ["about.mission"]
-          and served("about") == {"page": "about", "sections": [as_served({"name": "mission", "title": "Our mission"})]}
+          and served("about") == {"page": "about", "title": None, "description": None,
+                                    "sections": [as_served({"name": "mission", "title": "Our mission"})]}
           and served() == body)
 
     for method in ("post", "put", "patch", "delete"):

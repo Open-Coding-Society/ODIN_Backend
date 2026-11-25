@@ -1,6 +1,7 @@
 from flask import Blueprint, request, send_from_directory
 from flask_restful import Api, Resource # used for REST API building
 from model.odin_image import IMAGE_FOLDER, image_file, image_type
+from model.odin_page import OdinPage
 from model.odin_section import OdinSection, is_name
 from model.odin_site import OdinSite
 
@@ -24,9 +25,18 @@ class OdinAPI:
                 return {'message': 'The ODIN site content has not been set up.'}, 404
             return site.read()
 
-    class _Page(Resource):  # One page's sections
+    class _Pages(Resource):  # Every page, for the site menu
         def get(self): # Read method
-            ''' The sections of the page named by ?name=, in the order the page shows them '''
+            ''' Each page's name, title, description and menu words, in menu order '''
+            pages = OdinPage.listed()
+            if not pages:
+                return {'message': 'The ODIN pages have not been set up.'}, 404
+            return {'pages': [page.read() for page in pages]}
+
+    class _Page(Resource):  # One page's details and sections
+        def get(self): # Read method
+            ''' The title, description and sections of the page named by ?name=, the sections in
+            the order the page shows them '''
             name = request.args.get('name')
             if not name:
                 return {'message': 'Give the page name, as in ?name=home', 'errors': {'name': 'is required'}}, 400
@@ -35,7 +45,11 @@ class OdinAPI:
             sections = OdinSection.for_page(name) if is_name(name) else []
             if not sections:
                 return {'message': 'No ODIN page has that name.'}, 404
-            return {'page': name, 'sections': [section.read() for section in sections]}
+            # Sections saved before the page list was seeded have no details yet, so both are null
+            details = OdinPage.named(name)
+            details = details.read() if details else {}
+            return {'page': name, 'title': details.get('title'), 'description': details.get('description'),
+                    'sections': [section.read() for section in sections]}
 
     class _Image(Resource):  # One of the website's images
         def get(self): # Read method
@@ -57,5 +71,6 @@ class OdinAPI:
 
     # building RESTapi endpoint
     api.add_resource(_Site, '/site')
+    api.add_resource(_Pages, '/pages')
     api.add_resource(_Page, '/page')
     api.add_resource(_Image, '/image')

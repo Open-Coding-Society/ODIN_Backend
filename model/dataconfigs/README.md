@@ -10,6 +10,7 @@ something, or what a form offers, reads these files; it does not name a role, a 
 | `schools.json` | The schools a student can choose at sign-up | `model/schools.py` | `GET /api/signup-options` |
 | `permissions.json` | Who may make each request: open to anyone, any signed-in account, or only some roles | `model/permissions.py` | not sent |
 | `odin_site.json` | The basics of the ODIN Diagnostics website: the company name, its tagline, its contact details, its logos and the footer's links and copyright line | `model/odin_site.py` | `GET /api/odin/site` (from the saved row) |
+| `odin_page_list.json` | The pages of the ODIN Diagnostics website in menu order: each page's title, description and menu words | `model/odin_page.py` | `GET /api/odin/pages` and `GET /api/odin/page?name=<page>` (from the saved rows) |
 | `odin_pages.json` | The sections of each page of the ODIN Diagnostics website, in the order the page shows them | `model/odin_section.py` | `GET /api/odin/page?name=<page>` (from the saved rows) |
 
 Each file is added to this folder in the change that makes its values data. Data files that are not
@@ -131,6 +132,37 @@ who is signed in as a guest still gets the site's text.
 
 `python scripts/verify/verify_odin_site.py` checks the seed and the route.
 
+## odin_page_list.json
+
+The pages of the ODIN Diagnostics website, as a list in menu order:
+
+```json
+[ { "name": "home", "title": "ODIN Diagnostics", "description": "...", "menu": "Home" } ]
+```
+
+`FIELDS` in `model/odin_page.py` lists each key with its size:
+
+- `name` is the page's name, which no other page has. It follows the same rule as a page name in
+  `odin_pages.json`, and the two files use the same names.
+- `title` is the page's name in the browser tab. It is required.
+- `description` is one line about the page, for search results and link previews.
+- `menu` is the page's words in the site menu. A page without them is not in the menu.
+
+The frontend knows each page's address. Everything a visitor reads about a page comes from here.
+
+Like the other ODIN files, this one is a seed and follows the same steps: `scripts/db_init.py`
+seeds it, and after `scripts/db_upgrade.py` adds the `odin_page` table, run
+`python scripts/init_odin_site.py`. A new page is added, a saved page gets only the keys it has
+no text for, and the pages take the file's order. Saved text is never replaced. Bad data stops the
+seed with a message naming the file and the page (`odin_page_list.json: page 2: title is required`).
+
+`GET /api/odin/pages` sends `{"pages": [...]}` in menu order, each page with its `name` and every
+key in `FIELDS` (`null` for one it has nothing for), and answers 404 before the seed has run.
+`GET /api/odin/page?name=<page>` sends the page's `title` and `description` with its sections, and
+`null` for both when the page's sections were saved before its details. Both routes are public and
+in the guest account type's `allowed_requests`. `python scripts/verify/verify_odin_page_list.py`
+checks the seed and the routes.
+
 ## odin_pages.json
 
 The sections of each page of the ODIN Diagnostics website. The file is an object with one key per
@@ -179,7 +211,7 @@ To change wording a database already holds, change it in the file and in the sav
 update). Bad data stops the seed with a message naming the file, the page and the section by its
 place on the page (`odin_pages.json: home section 2: item 1: text is required`).
 
-`GET /api/odin/page?name=<page>` sends `{"page": ..., "sections": [...]}`. Each section has its
+`GET /api/odin/page?name=<page>` sends `{"page": ..., "title": ..., "description": ..., "sections": [...]}`. Each section has its
 `name`, every part in `FIELDS` (`null` for one it has nothing for) and its `items` (an empty list
 when it has none). The route is public and is in the guest account type's `allowed_requests`, like
 the site basics. `python scripts/verify/verify_odin_pages.py` checks the seed and the route.

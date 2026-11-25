@@ -3,8 +3,13 @@
 GET {{baseUrl}}/api/odin/site
 Accept: application/json
 
-### Read the home page's sections - expect 200 and an object with page and sections, the sections
-### in the order the page shows them: hero, statistics, features, how_it_works, pitch, fda
+### Read the pages - expect 200 and an object with pages, each with name, title, description and
+### menu, in menu order
+GET {{baseUrl}}/api/odin/pages
+Accept: application/json
+
+### Read the home page - expect 200 and an object with page, title, description and sections, the
+### sections in the order the page shows them: hero, statistics, features, how_it_works, pitch, fda
 GET {{baseUrl}}/api/odin/page?name=home
 Accept: application/json
 
