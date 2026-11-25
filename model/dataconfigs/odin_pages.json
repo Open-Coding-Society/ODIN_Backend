@@ -6,36 +6,30 @@
       "title": "ODIN™",
       "text": "AI-powered eye-tracking technology for rapid, non-invasive concussion assessments.",
       "action": "Contact Us!",
-      "image": "hero-headset-lens.webp",
-      "image_alt": "Green light falls on one lens of a headset, seen up close from the side the wearer looks into."
+      "image": "product-headset.jpg",
+      "image_alt": "The ODIN headset from the front: a white headset with the ODIN name and eye mark printed on its face."
     },
     {
       "name": "statistics",
       "title": "Concussion Chaos",
       "items": [
-        { "title": "3,800,000", "text": "Sport related concussions occur each year" },
-        { "title": "50%", "text": "Of concussions go undetected" },
-        { "title": "20%", "text": "High school athletes who play impact sports suffer a concussion each year" },
-        { "title": "$131,500,000", "text": "Amount spent on concussion care per day" }
+        {
+          "title": "3,800,000",
+          "text": "Sport related concussions occur each year"
+        },
+        {
+          "title": "50%",
+          "text": "Of concussions go undetected"
+        },
+        {
+          "title": "20%",
+          "text": "High school athletes who play impact sports suffer a concussion each year"
+        },
+        {
+          "title": "$131,500,000",
+          "text": "Amount spent on concussion care per day"
+        }
       ]
-    },
-    {
-      "name": "features",
-      "image": "product-headset.jpg",
-      "image_alt": "Headset",
-      "items": [
-        { "title": "Portable", "text": "Engineered for immediate point of care use." },
-        { "title": "Interpretable Results", "text": "Clear, straightforward metrics any health care professional can understand." },
-        { "title": "Quick", "text": "Access real-time, actionable insights when it matters most." },
-        { "title": "Data Sharing", "text": "Seamlessly share results with stakeholders such as other medical professionals, parents, and coaches." }
-      ]
-    },
-    {
-      "name": "how_it_works",
-      "title": "How it works",
-      "text": "ODIN utilizes state-of-the-art eye-tracking software to capture precise ocular metrics during our assessments, which are then fed into our advanced machine-learning algorithms for accurate and comprehensive user evaluation.",
-      "image": "eye-tracking.webp",
-      "image_alt": "Eye Tracking"
     },
     {
       "name": "pitch",
@@ -46,6 +40,76 @@
       "name": "fda",
       "title": "FDA Clearance",
       "text": "This device is an investigational product and has not yet been cleared or approved by the U.S. Food and Drug Administration. It is currently being offered for research use only and is not yet intended to diagnose, treat, cure, or prevent any disease."
+    }
+  ],
+  "how_it_works": [
+    {
+      "name": "how_it_works",
+      "title": "How it works",
+      "text": "ODIN utilizes state-of-the-art eye-tracking software to capture precise ocular metrics during our assessments, which are then fed into our advanced machine-learning algorithms for accurate and comprehensive user evaluation.",
+      "image": "eye-tracking.webp",
+      "image_alt": "A close view of a person's eyes as they open."
+    },
+    {
+      "name": "features",
+      "items": [
+        {
+          "title": "Portable",
+          "text": "Engineered for immediate point of care use."
+        },
+        {
+          "title": "Interpretable Results",
+          "text": "Clear, straightforward metrics any health care professional can understand."
+        },
+        {
+          "title": "Quick",
+          "text": "Access real-time, actionable insights when it matters most."
+        },
+        {
+          "title": "Data Sharing",
+          "text": "Seamlessly share results with stakeholders such as other medical professionals, parents, and coaches."
+        }
+      ]
+    }
+  ],
+  "about": [
+    {
+      "name": "mission",
+      "text": "At ODIN Diagnostics we are committed to making a significant leap forward in brain health. Our team comprises a diverse group of interdisciplinary engineers, entrepreneurs, and athletes united by a shared passion for creating a safer future and driving meaningful change.\n\nWe understand the complexities of concussions and are committed to addressing these challenges head-on. Our mission is to redefine concussion care to preserve brain health. We aim to prevent further damage after injury through early detection and intervention and by guiding evidence-based treatments to reduce long-term effects.\n\nWe are driven to make a lasting impact and enhance safety across all areas where brain injuries occur.",
+      "image": "hero-headset-lens.webp",
+      "image_alt": "Green light falls on one lens of a headset, seen up close from the side the wearer looks into."
+    }
+  ],
+  "contact": [
+    {
+      "name": "intro",
+      "text": "Please reach out regarding any questions about our product or company"
+    },
+    {
+      "name": "phone",
+      "title": "Phone:"
+    },
+    {
+      "name": "email",
+      "title": "Email:"
+    },
+    {
+      "name": "address",
+      "title": "Address:"
+    },
+    {
+      "name": "partner",
+      "image": "partner-evonexus.png",
+      "image_alt": "EvoNexus",
+      "link": "https://evonexus.org/"
+    }
+  ],
+  "not_found": [
+    {
+      "name": "message",
+      "title": "Sorry, the page can’t be found",
+      "text": "The page you were looking for appears to have been moved, deleted or does not exist.",
+      "action": "Back to Homepage"
     }
   ]
 }

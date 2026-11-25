@@ -179,6 +179,11 @@ page. Each page is the list of its sections, in the order the page shows them:
             { "name": "statistics", "items": [ { "title": "50%", "text": "..." } ] } ] }
 ```
 
+The pages are `home`, `how_it_works`, `about`, `contact` and `not_found` (what a visitor sees at an
+address the site does not have). Each is also in `odin_page_list.json`, which gives it a title.
+The words are ODIN's own, from odin-diagnostics.com. The `image_alt` lines were written for this
+site, because the original has none that describe the picture.
+
 A page's name and a section's name are at most 40 lowercase letters, digits and underscores, and
 start with a letter (`how_it_works`). A section needs a `name` that no other section of its page
 has. Every other part is optional. `FIELDS` in `model/odin_section.py` lists each part with what it
@@ -187,6 +192,8 @@ holds and its size:
 - Text: `kicker` (the short line above the title), `title`, `text` and `action` (the words on the
   section's button; where the button leads is up to the page).
 - `image` names a file in `odin/images/`, and `image_alt` says what it shows. Give both or neither.
+- `link` is where the section's image leads on another site, as a full `https` address. A section
+  with a `link` needs an `image`.
 - `items` is a list for a section that shows several of one thing, such as statistics or features.
   Each item needs a `title` and a `text`. Leave `items` out of a section that has no list.
 
@@ -212,6 +219,12 @@ or none:
 - The file decides the order of a page's sections.
 - A section that was removed from the file, or renamed in it, stays in the database and on the
   page. Delete its row to take it off.
+
+The `how_it_works` and `features` sections moved from `home` to the `how_it_works` page. A database
+seeded before that still has them on `home`. Take them off with
+`DELETE FROM odin_section WHERE page = 'home' AND name IN ('how_it_works', 'features')`, and run
+`python scripts/init_odin_site.py` to add the new pages. A saved `home` hero also keeps the photo
+it was seeded with until its `image` and `image_alt` are emptied and the seed is run again.
 
 To change wording a database already holds, change it in the file and in the saved row (a database
 update). Bad data stops the seed with a message naming the file, the page and the section by its

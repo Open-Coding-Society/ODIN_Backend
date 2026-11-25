@@ -20,8 +20,10 @@ REAL_DB = os.path.join(REPO, "instance", "volumes", "user_management.db")
 PASSWORD = "Aa1!" + secrets.token_urlsafe(16)
 URL = "/api/odin/page"
 HOME = URL + "?name=home"
-# The home page's sections, in the order the current site shows them
-HOME_ORDER = ["hero", "statistics", "features", "how_it_works", "pitch", "fda"]
+# The home page's sections, in the order the page shows them
+HOME_ORDER = ["hero", "statistics", "pitch", "fda"]
+# Every page the seed holds
+PAGES = ["home", "how_it_works", "about", "contact", "not_found"]
 FILE = "odin_pages.json: "
 _failures = []
 
@@ -65,6 +67,9 @@ def main():
 
     with open(SEED_FILE, encoding="utf-8") as fh:
         seed = json.load(fh)
+
+    # How many sections the seed holds, over all its pages
+    seeded = sum(len(sections) for sections in seed.values())
 
     def as_served(section):
         """One section of a seed file as the route sends it: every part, null for one it does not have."""
@@ -254,11 +259,22 @@ def main():
     check("every text part of the longest length is accepted and served whole",
           run_seed({"home": [fullest]}) == ["home.full"] and served()["sections"][0] == as_served(fullest))
     clear()
-    features = f"home section {place('features')}: "
+    hero = f"home section {place('hero')}: "
     for bad in ("missing.svg", "../main.py", "README.md", "PRODUCT-HEADSET.JPG"):
-        refused(f"image: {bad!r} is refused", with_section("features", image=bad), features + "image must name an image in odin/images/")
-    refused("an image without its description is refused", with_section("features", image_alt=None), features + "image needs image_alt, and image_alt needs image")
-    refused("a description without its image is refused", with_section("features", image=None), features + "image needs image_alt, and image_alt needs image")
+        refused(f"image: {bad!r} is refused", with_section("hero", image=bad), hero + "image must name an image in odin/images/")
+    refused("an image without its description is refused", with_section("hero", image_alt=None), hero + "image needs image_alt, and image_alt needs image")
+    refused("a description without its image is refused", with_section("hero", image=None), hero + "image needs image_alt, and image_alt needs image")
+    bad_links = ("http://evonexus.org/", "evonexus.org", "javascript:alert(1)", "https://", "https://user:pass@a.example/",
+                 "https://a.example/x y", "https://a.example/\"onclick", "https://a.example/<x>", "/about/")
+    for bad in bad_links:
+        refused(f"link: {bad!r} is refused", with_section("hero", link=bad),
+                hero + "link must be a full https link, such as https://example.com/page")
+    refused("a link without an image to follow it from is refused", with_section("statistics", link="https://example.com/"),
+            f"home section {place('statistics')}: link needs an image, which is what a visitor follows it from")
+    check("a section with an image and a link is saved, and the link is served",
+          run_seed({"home": [{"name": "partner", "image": "partner-evonexus.png", "image_alt": "EvoNexus", "link": "https://evonexus.org/"}]})
+          == ["home.partner"] and served()["sections"][0]["link"] == "https://evonexus.org/")
+    clear()
     refused("a section with only a name is refused", {"home": [{"name": "empty"}]}, "home section 1: needs a title, text, an image or items")
     refused("a section with only a line above the title and a button is refused",
             {"home": [{"name": "empty", "kicker": "Introducing", "action": "Contact Us!"}]}, "home section 1: needs a title, text, an image or items")
@@ -315,9 +331,9 @@ def main():
         code = init_odin_site.main()
     printed = out.getvalue().strip().splitlines()
     check("init_odin_site.py seeds an empty database, and prints what each seed did",
-          code == 0 and rows() == len(seed["home"]) and len(printed) == 3 and "home.hero" in printed[2], printed)
+          code == 0 and rows() == seeded and len(printed) == 3 and "home.hero" in printed[2], printed)
     code, message = init_odin_site.seed_sections()
-    check("init_odin_site.py run again changes nothing, and says so", code == 0 and rows() == len(seed["home"]) and "Nothing changed" in message, message)
+    check("init_odin_site.py run again changes nothing, and says so", code == 0 and rows() == seeded and "Nothing changed" in message, message)
     out = io.StringIO()
     with contextlib.redirect_stdout(out), mock.patch.object(init_odin_site, "initOdinSections", side_effect=ValueError("odin_pages.json: broken")):
         code = init_odin_site.main()
@@ -338,7 +354,18 @@ def main():
     check("GET needs no login", r.status_code == 200, r.status_code)
     check("GET returns the page's name, title, description and sections",
           sorted(body) == ["description", "page", "sections", "title"] and body["page"] == "home", body)
-    check("the home page's sections come in the order the current site shows them", order() == HOME_ORDER, order())
+    check("the home page's sections come in the order the page shows them", order() == HOME_ORDER, order())
+    check("the seed holds exactly the pages the site has", list(seed) == PAGES, list(seed))
+    for page in PAGES:
+        got = anon.get(URL, query_string={"name": page}).get_json() or {}
+        check(f"the {page} page is served with the sections odin_pages.json holds for it",
+              got.get("sections") == [as_served(section) for section in seed[page]], got)
+    mission = served("about")["sections"][0]["text"]
+    check("the about page's mission keeps its three paragraphs, with a blank line between them",
+          len(mission.split("\n\n")) == 3 and all(part.strip() for part in mission.split("\n\n")), mission)
+    partner = [section for section in served("contact")["sections"] if section["name"] == "partner"]
+    check("the contact page's partner logo carries its link",
+          len(partner) == 1 and partner[0]["link"] == "https://evonexus.org/" and partner[0]["image"] == "partner-evonexus.png", partner)
     check("each section has its name, every key in FIELDS and its items, and nothing else",
           all(sorted(section) == sorted(["name", "items", *FIELDS]) for section in body["sections"]))
     check("GET returns what odin_pages.json holds, with null for a part a section does not have",
@@ -365,7 +392,7 @@ def main():
               and r.status_code == 404 and bool((r.get_json() or {}).get("message")), r.status_code)
 
     # Seeding a database that already has sections
-    check("running the seed again writes nothing", run_seed() == [] and rows() == len(seed["home"]) and served() == body)
+    check("running the seed again writes nothing", run_seed() == [] and rows() == seeded and served() == body)
     check("a later seed file does not replace text that is saved",
           run_seed(with_section("hero", title="Another Title", text="Another line.")) == [] and served() == body)
     # These checks give an image to a section the file has none for
@@ -427,9 +454,9 @@ def main():
     check("the checks above left the home page as the file has it", served() == body)
 
     check("a page added to the file later is saved beside the first, and each is served by its own name",
-          run_seed({**seed, "about": [{"name": "mission", "title": "Our mission"}]}) == ["about.mission"]
-          and served("about") == {"page": "about", "title": "about", "description": None,
-                                    "sections": [as_served({"name": "mission", "title": "Our mission"})]}
+          run_seed({**seed, "press": [{"name": "notes", "title": "Press notes"}]}) == ["press.notes"]
+          and served("press") == {"page": "press", "title": "press", "description": None,
+                                    "sections": [as_served({"name": "notes", "title": "Press notes"})]}
           and served() == body)
 
     for method in ("post", "put", "patch", "delete"):

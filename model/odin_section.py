@@ -2,7 +2,7 @@
 import os
 
 from __init__ import db
-from model.odin_seed import IMAGE, NAME_MAX, NAME_RULE, TEXT, checked_value, is_name, load_seed
+from model.odin_seed import IMAGE, LINK, NAME_MAX, NAME_RULE, TEXT, checked_value, is_name, load_seed
 
 # The sections each page of the website starts with. They are data, so the wording a new database
 # gets never comes from code.
@@ -16,6 +16,7 @@ FIELDS = {
     'action': (TEXT, 100),     # the words on the section's button
     'image': (IMAGE, 100),
     'image_alt': (TEXT, 255),  # what the image shows, for a visitor who cannot see it
+    'link': (LINK, 255),       # where the section's image leads, on another site
 }
 
 # The parts of one item in a section's list, such as one statistic or one feature. Both are required.
@@ -37,7 +38,7 @@ class OdinSection(db.Model):
         page (db.Column): The page the section is on, such as home.
         name (db.Column): The section's name, which no other section of the page has, such as hero.
         position (db.Column): Where the section comes on its page, counting from 0.
-        kicker ... image_alt (db.Column): One column per key in FIELDS.
+        kicker ... link (db.Column): One column per key in FIELDS.
         items (db.Column): The section's list, each item holding the keys in ITEM_FIELDS.
     """
     __tablename__ = 'odin_section'
@@ -54,6 +55,7 @@ class OdinSection(db.Model):
     action = db.Column(db.String(FIELDS['action'][1]), nullable=True)
     image = db.Column(db.String(FIELDS['image'][1]), nullable=True)
     image_alt = db.Column(db.String(FIELDS['image_alt'][1]), nullable=True)
+    link = db.Column(db.String(FIELDS['link'][1]), nullable=True)
     items = db.Column(db.JSON, nullable=False)
 
     # Constructor: takes the page, the place on it, and one section's checked values
@@ -145,6 +147,8 @@ def _checked_section(section):
             return None, f"{key} {problem}"
     if (values['image'] is None) != (values['image_alt'] is None):
         return None, "image needs image_alt, and image_alt needs image"
+    if values['link'] is not None and values['image'] is None:
+        return None, "link needs an image, which is what a visitor follows it from"
     values['items'], problem = _checked_items(section.get('items'))
     if problem:
         return None, problem
