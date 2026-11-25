@@ -15,7 +15,7 @@ seven are smaller copies, because the originals are between 1.5 and 4.4 MB each.
 | `site-icon.png` | `/android-chrome-192x192.png` | The ODIN mark in black on white, 192 pixels square. The original site's manifest icon, used here for the browser's tab |
 | `hero-headset-lens.webp` | `/images/hero/vr_green.png` | A close view of a headset lens in green light. The original site puts it behind the opening text of its home page |
 | `product-headset.jpg` | `/images/capabilities/V3_ODIN2.jpg` | The ODIN headset |
-| `eye-tracking.webp` | `/images/eyetracking/EyeOpen.gif` | A short loop of two eyes opening |
+| `eye-tracking.webp` | `/images/eyetracking/EyeOpen.gif` | Two eyes opening. It plays once and rests on the open eyes |
 | `team-marina-zellers.webp` | `/images/about/marina_zellers.jpeg` | Marina Zellers |
 | `team-michael-noon.webp` | `/images/about/michael_noon.jpeg` | Michael Noon |
 | `team-connor-fourt.webp` | `/images/about/connor_fourt.jpeg` | Connor Fourt |
@@ -33,8 +33,10 @@ Size and file type. The lens photo also has a thin line trimmed from its top and
 - The team photos came round, with clear corners. Their files on the site are
   PNG images named `.jpeg`. They are WebP here, which keeps the clear corners at
   a small size.
-- The eye loop has the same 46 frames and timing as the original GIF, saved as an
-  animated WebP at about an eighth of the size.
+- The eye picture has the same 46 frames and timing as the original GIF, saved as an
+  animated WebP at about a seventh of the size. The original loops without end. This
+  one plays once, about two seconds, and stops: a page gives a visitor no way to pause
+  a moving picture.
 - The EvoNexus logo is 600 pixels square.
 
 ## Things to know
