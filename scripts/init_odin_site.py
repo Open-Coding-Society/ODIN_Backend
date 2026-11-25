@@ -16,6 +16,8 @@ import sys
 # Add the directory containing __init__.py to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from __init__ import app, db
 from model.odin_page import OdinPage, initOdinPages
 from model.odin_section import OdinSection, initOdinSections
@@ -65,6 +67,10 @@ def seed_pages():
             written = initOdinPages()
         except ValueError as error:
             return 1, f"Not seeded. {error}"
+        except SQLAlchemyError as error:
+            # A row the database refuses, such as a hand-entered name that differs only by case on
+            # MySQL. The seeds after this one still run.
+            return 1, f"Not seeded. The database refused the pages ({error.__class__.__name__})."
         if written:
             return 0, f"Saved from model/dataconfigs/odin_page_list.json: {', '.join(written)}."
         return 0, "The ODIN pages are already there. Nothing changed."

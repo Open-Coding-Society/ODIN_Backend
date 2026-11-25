@@ -1,12 +1,23 @@
 """ Reading and checking the ODIN seed files """
 import json
 import os
+import re
 from urllib.parse import urlsplit
 
 from model.odin_image import image_file
 
 # What a value holds: plain text, a link to another site, or the name of a file in odin/images/
 TEXT, LINK, IMAGE = 'text', 'link', 'image'
+
+# A page's name and a section's name, such as how_it_works
+NAME_MAX = 40
+NAME_PATTERN = re.compile(r'[a-z][a-z0-9_]*')
+NAME_RULE = f"must be at most {NAME_MAX} lowercase letters, digits and underscores, and start with a letter"
+
+
+def is_name(value):
+    """True for text that can name a page or a section."""
+    return isinstance(value, str) and len(value) <= NAME_MAX and NAME_PATTERN.fullmatch(value) is not None
 
 
 class _RepeatedKey(ValueError):

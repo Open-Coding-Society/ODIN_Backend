@@ -1,18 +1,12 @@
 """ ODIN page sections """
 import os
-import re
 
 from __init__ import db
-from model.odin_seed import IMAGE, TEXT, checked_value, load_seed
+from model.odin_seed import IMAGE, NAME_MAX, NAME_RULE, TEXT, checked_value, is_name, load_seed
 
 # The sections each page of the website starts with. They are data, so the wording a new database
 # gets never comes from code.
 SEED_FILE = os.path.join(os.path.dirname(__file__), "dataconfigs", "odin_pages.json")
-
-# A page's name and a section's name, such as how_it_works
-NAME_MAX = 40
-NAME_PATTERN = re.compile(r'[a-z][a-z0-9_]*')
-NAME_RULE = f"must be at most {NAME_MAX} lowercase letters, digits and underscores, and start with a letter"
 
 # The parts a section can have, all optional. JSON key (also the column name): (what it holds, max length)
 FIELDS = {
@@ -29,11 +23,6 @@ ITEM_FIELDS = {
     'title': (TEXT, 100),
     'text': (TEXT, 500),
 }
-
-
-def is_name(value):
-    """True for text that can name a page or a section."""
-    return isinstance(value, str) and len(value) <= NAME_MAX and NAME_PATTERN.fullmatch(value) is not None
 
 
 class OdinSection(db.Model):

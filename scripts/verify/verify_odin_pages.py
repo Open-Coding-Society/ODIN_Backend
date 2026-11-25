@@ -59,6 +59,7 @@ def main():
     import init_odin_site
     from model import account_types
     from model.user import User
+    from model.odin_page import OdinPage
     from model.odin_section import OdinSection, initOdinSections, FIELDS, ITEM_FIELDS, NAME_MAX, SEED_FILE
     app.config["TESTING"] = True
 
@@ -115,7 +116,16 @@ def main():
         got = refusal(content)
         check(label, got == expected, got)
 
+    def listed(page):
+        """Puts the page in the page list if it is not there. Sections are served only for a page
+        in the list, and these checks are about the sections."""
+        with app.app_context():
+            if OdinPage.named(page) is None:
+                db.session.add(OdinPage(OdinPage.query.count(), {"name": page, "title": page, "description": None, "menu": None}))
+                db.session.commit()
+
     def served(page="home"):
+        listed(page)
         return app.test_client().get(f"{URL}?name={page}").get_json()
 
     def order():
@@ -339,15 +349,20 @@ def main():
           bool(images) and all(anon.get(f"/api/odin/image?name={image}").status_code == 200 for image in images), images)
     # MySQL compares text without regard to case or accents, so a name that is not well formed must
     # never reach the database: Home would find the home page there.
-    with mock.patch.object(OdinSection, "for_page", wraps=real_for_page) as looked_up:
+    # The route looks the name up in the page list first, and reads sections only for a page it finds.
+    real_named = OdinPage.named
+    with mock.patch.object(OdinPage, "named", wraps=real_named) as page_looked_up, \
+            mock.patch.object(OdinSection, "for_page", wraps=real_for_page) as looked_up:
         for page in ("Home", "HOME", "hömé", "home ", "home' OR '1'='1", "x" * 500):
             r = anon.get(URL, query_string={"name": page})
             check(f"GET for the name {page[:16]!r}, which no page can have, is a 404 with a message",
                   r.status_code == 404 and bool((r.get_json() or {}).get("message")), r.status_code)
-        check("a name no page can have is never looked up in the database", looked_up.call_count == 0, looked_up.call_count)
+        check("a name no page can have is never looked up in the database",
+              page_looked_up.call_count == 0 and looked_up.call_count == 0, f"{page_looked_up.call_count} {looked_up.call_count}")
         r = anon.get(URL, query_string={"name": "missing"})
-        check("GET for a well-formed name with no page is looked up, and is a 404 with a message",
-              looked_up.call_count == 1 and r.status_code == 404 and bool((r.get_json() or {}).get("message")), r.status_code)
+        check("GET for a well-formed name with no page is looked up in the page list, and is a 404 with a message",
+              page_looked_up.call_count == 1 and looked_up.call_count == 0
+              and r.status_code == 404 and bool((r.get_json() or {}).get("message")), r.status_code)
 
     # Seeding a database that already has sections
     check("running the seed again writes nothing", run_seed() == [] and rows() == len(seed["home"]) and served() == body)
@@ -413,7 +428,7 @@ def main():
 
     check("a page added to the file later is saved beside the first, and each is served by its own name",
           run_seed({**seed, "about": [{"name": "mission", "title": "Our mission"}]}) == ["about.mission"]
-          and served("about") == {"page": "about", "title": None, "description": None,
+          and served("about") == {"page": "about", "title": "about", "description": None,
                                     "sections": [as_served({"name": "mission", "title": "Our mission"})]}
           and served() == body)
 

@@ -48,6 +48,7 @@ def main():
 
     import __init__ as pkg
     from sqlalchemy import create_engine
+    from sqlalchemy.exc import IntegrityError
     app, db = pkg.app, pkg.db
     engine = create_engine(f"sqlite:///{os.path.join(tempfile.mkdtemp(prefix='odin-'), 'new.db')}")
     with app.app_context():
@@ -57,7 +58,7 @@ def main():
     from model import account_types
     from model.user import User
     from model.odin_page import OdinPage, initOdinPages, FIELDS, REQUIRED, SEED_FILE
-    from model.odin_section import OdinSection, NAME_MAX
+    from model.odin_section import OdinSection, NAME_MAX, initOdinSections
     from model.odin_section import SEED_FILE as SECTIONS_FILE
     app.config["TESTING"] = True
 
@@ -121,14 +122,34 @@ def main():
         db.create_all()
         OdinPage.__table__.drop(db.engine)
     code, message = seed_pages()
-    check("init_odin_site.py on a database without the table changes nothing and says to run db_upgrade.py",
-          code == 1 and "db_upgrade.py" in message, message)
+    with app.app_context():
+        still_absent = "odin_page" not in db.inspect(db.engine).get_table_names()
+    check("init_odin_site.py on a database without the table names it, says to run db_upgrade.py and creates nothing",
+          code == 1 and "odin_page" in message and "db_upgrade.py" in message and still_absent, message)
     with app.app_context():
         db.create_all()
-        check("each column is as long as FIELDS says",
-              all(OdinPage.__table__.columns[key].type.length == size for key, (kind, size) in FIELDS.items()))
+        built = {column["name"]: column for column in db.inspect(db.engine).get_columns("odin_page")}
+        check("the table has a column for every key in FIELDS, as long as FIELDS says",
+              all(key in built and built[key]["type"].length == size for key, (kind, size) in FIELDS.items()),
+              {key: getattr(column["type"], "length", None) for key, column in built.items()})
         check("a page's name is as long as a section's page name",
-              OdinPage.__table__.columns["name"].type.length == NAME_MAX == OdinSection.__table__.columns["page"].type.length)
+              built["name"]["type"].length == NAME_MAX == OdinSection.__table__.columns["page"].type.length)
+        check("a page's name, position and title do not allow NULL, and its other keys do",
+              not any(built[key]["nullable"] for key in ("name", "position", "title"))
+              and all(built[key]["nullable"] for key in FIELDS if key not in REQUIRED))
+        only = {"name": "home", "title": "One", "description": None, "menu": None}
+        db.session.add(OdinPage(0, only))
+        db.session.commit()
+        db.session.add(OdinPage(1, only))
+        try:
+            db.session.commit()
+            refused_twice = False
+        except IntegrityError:
+            db.session.rollback()
+            refused_twice = True
+        check("the database refuses a second page with the same name", refused_twice)
+        OdinPage.query.delete()
+        db.session.commit()
 
     anon = app.test_client()
     r = anon.get(URL)
@@ -220,9 +241,11 @@ def main():
     check("a page put first in the file is added first, and the others move down",
           written == ["extra", *[f"{page['name']}.position" for page in seed]]
           and [page["name"] for page in served()["pages"]] == ["extra", *[page["name"] for page in seed]], written)
-    run_seed()
-    check("a page the file no longer has stays in the database and in the list",
-          sorted(page["name"] for page in served()["pages"]) == sorted(["extra", *[page["name"] for page in seed]]))
+    written = run_seed()
+    check("a page the file no longer has stays in the list, after the file's pages",
+          written == [*[f"{page['name']}.position" for page in seed], "extra.position"]
+          and [page["name"] for page in served()["pages"]] == [*[page["name"] for page in seed], "extra"], f"{written} {served()}")
+    check("seeding the same file again moves nothing", run_seed() == [])
     with app.app_context():
         OdinPage.query.filter_by(name="extra").delete()
         db.session.commit()
@@ -231,10 +254,18 @@ def main():
     with app.app_context():
         OdinPage.query.delete()
         db.session.commit()
-    got = anon.get(PAGE, query_string={"name": first["name"]}).get_json() or {}
-    check("a page whose sections were saved before its details is served with a null title and description",
-          got.get("title") is None and got.get("description") is None and bool(got.get("sections")), got)
+    r = anon.get(PAGE, query_string={"name": first["name"]})
+    check("sections whose page is not in the list are not a page: GET /api/odin/page is a 404 with a message",
+          r.status_code == 404 and bool((r.get_json() or {}).get("message")), r.get_json())
     run_seed()
+    with app.app_context():
+        OdinSection.query.filter_by(page=first["name"]).delete()
+        db.session.commit()
+    r = anon.get(PAGE, query_string={"name": first["name"]})
+    check("a page in the list with no sections is a 404 too", r.status_code == 404, r.status_code)
+    with app.app_context():
+        initOdinSections()
+    check("with both back, the page is served again", anon.get(PAGE, query_string={"name": first["name"]}).status_code == 200)
 
     for method in ("post", "put", "patch", "delete"):
         r = getattr(anon, method)(URL, json={"name": "home", "title": "x"})

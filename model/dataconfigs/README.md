@@ -153,15 +153,21 @@ The frontend knows each page's address. Everything a visitor reads about a page 
 Like the other ODIN files, this one is a seed and follows the same steps: `scripts/db_init.py`
 seeds it, and after `scripts/db_upgrade.py` adds the `odin_page` table, run
 `python scripts/init_odin_site.py`. A new page is added, a saved page gets only the keys it has
-no text for, and the pages take the file's order. Saved text is never replaced. Bad data stops the
+no text for, and the pages take the file's order. A saved page the file no longer has is kept,
+after the file's pages. Saved text is never replaced. Bad data stops the
 seed with a message naming the file and the page (`odin_page_list.json: page 2: title is required`).
 
 `GET /api/odin/pages` sends `{"pages": [...]}` in menu order, each page with its `name` and every
 key in `FIELDS` (`null` for one it has nothing for), and answers 404 before the seed has run.
-`GET /api/odin/page?name=<page>` sends the page's `title` and `description` with its sections, and
-`null` for both when the page's sections were saved before its details. Both routes are public and
-in the guest account type's `allowed_requests`. `python scripts/verify/verify_odin_page_list.py`
-checks the seed and the routes.
+`GET /api/odin/page?name=<page>` sends the page's `title` and `description` with its sections. A
+page is in this list and has sections in `odin_pages.json`: with only one of the two, the route
+answers 404. Both routes are public and in the guest account type's `allowed_requests`.
+
+After deploying this code, run `db_upgrade.py` and then `init_odin_site.py` right away. Until the
+`odin_page` table exists both routes answer 500, as any query of a missing table does, and until
+it is seeded they answer 404.
+
+`python scripts/verify/verify_odin_page_list.py` checks the seed and the routes.
 
 ## odin_pages.json
 

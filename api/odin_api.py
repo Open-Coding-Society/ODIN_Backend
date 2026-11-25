@@ -2,7 +2,8 @@ from flask import Blueprint, request, send_from_directory
 from flask_restful import Api, Resource # used for REST API building
 from model.odin_image import IMAGE_FOLDER, image_file, image_type
 from model.odin_page import OdinPage
-from model.odin_section import OdinSection, is_name
+from model.odin_section import OdinSection
+from model.odin_seed import is_name
 from model.odin_site import OdinSite
 
 odin_api = Blueprint('odin_api', __name__,
@@ -42,13 +43,14 @@ class OdinAPI:
                 return {'message': 'Give the page name, as in ?name=home', 'errors': {'name': 'is required'}}, 400
             # Only a well-formed name is looked up. MySQL compares text without regard to case, so
             # Home would find the home page there and not on SQLite.
-            sections = OdinSection.for_page(name) if is_name(name) else []
+            # A page is in the page list and has sections. With only one of the two there is no
+            # page to show: sections alone would have no title.
+            page = OdinPage.named(name) if is_name(name) else None
+            sections = OdinSection.for_page(name) if page else []
             if not sections:
                 return {'message': 'No ODIN page has that name.'}, 404
-            # Sections saved before the page list was seeded have no details yet, so both are null
-            details = OdinPage.named(name)
-            details = details.read() if details else {}
-            return {'page': name, 'title': details.get('title'), 'description': details.get('description'),
+            details = page.read()
+            return {'page': name, 'title': details['title'], 'description': details['description'],
                     'sections': [section.read() for section in sections]}
 
     class _Image(Resource):  # One of the website's images

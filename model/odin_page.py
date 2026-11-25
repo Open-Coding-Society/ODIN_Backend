@@ -2,8 +2,7 @@
 import os
 
 from __init__ import db
-from model.odin_section import NAME_MAX, NAME_RULE, is_name
-from model.odin_seed import TEXT, checked_value, load_seed
+from model.odin_seed import NAME_MAX, NAME_RULE, TEXT, checked_value, is_name, load_seed
 
 # The pages the website starts with. They are data, so a page's title or its place in the menu
 # never comes from code.
@@ -122,9 +121,10 @@ def _checked_page(page):
 
 def initOdinPages(path=SEED_FILE):
     """Seeds the pages in odin_page_list.json. Adds the ones the database does not have, fills the
-    keys a saved page has no text for, and puts the pages in the file's order. Saved text is never
-    replaced. All of it is saved, or none. Returns what it wrote: the name of a new page, and
-    name.key for a filled key or a changed position."""
+    keys a saved page has no text for, and puts the pages in the file's order. A saved page the
+    file no longer has is kept, after the file's pages. Saved text is never replaced. All of it is
+    saved, or none. Returns what it wrote: the name of a new page, and name.key for a filled key or
+    a changed position."""
     pages, error = OdinPage.validate(load_seed(path))
     if error:
         raise ValueError(f"{os.path.basename(path)}: {error}")
@@ -141,6 +141,13 @@ def initOdinPages(path=SEED_FILE):
             page.position = position
             changed.append('position')
         written.extend(f"{page.name}.{key}" for key in changed)
+    # A page the file no longer has would keep its old place, which could put it ahead of the
+    # file's first page. Each goes after the file's pages, in the order they had.
+    listed = {values['name'] for values in pages}
+    for position, page in enumerate((page for page in saved.values() if page.name not in listed), start=len(pages)):
+        if page.position != position:
+            page.position = position
+            written.append(f"{page.name}.position")
     try:
         db.session.commit()
     except Exception:
