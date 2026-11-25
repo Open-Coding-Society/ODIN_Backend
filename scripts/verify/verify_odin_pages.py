@@ -375,6 +375,10 @@ def main():
           sorted(body) == ["description", "page", "sections", "title"] and body["page"] == "home", body)
     check("the home page's sections come in the order the page shows them", order() == HOME_ORDER, order())
     check("the seed holds exactly the pages the site has", list(seed) == PAGES, list(seed))
+    notice = (anon.get("/api/odin/site").get_json() or {}).get("notice")
+    texts = [section.get("text") for sections in seed.values() for section in sections]
+    check("the regulatory notice is in the site basics and in no section, so its words live in one place",
+          bool(notice) and notice not in texts and not any(section["name"] == "fda" for sections in seed.values() for section in sections))
     for page in PAGES:
         got = anon.get(URL, query_string={"name": page}).get_json() or {}
         check(f"the {page} page is served with the sections odin_pages.json holds for it",

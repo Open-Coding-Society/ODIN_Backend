@@ -20,7 +20,7 @@ class OdinAPI:
 
     class _Site(Resource):  # The basics every page shows
         def get(self): # Read method
-            ''' The company name, tagline, contact details, logos and footer lines '''
+            ''' The company name, tagline, contact details, logos, icon, footer lines and the notice every page carries '''
             site = OdinSite.current()
             if site is None:
                 return {'message': 'The ODIN site content has not been set up.'}, 404

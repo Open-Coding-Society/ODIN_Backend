@@ -29,14 +29,14 @@ class OdinSite(db.Model):
     """
     OdinSite Model
 
-    What every page of the ODIN Diagnostics website shows: the company name, its tagline, how to
-    reach it, its logos and icon, the lines in the footer and the notice of the device's
+    What every page of the ODIN Diagnostics website shows: the company name, its tagline, how
+    to reach it, its logos and icon, the lines in the footer and the notice of the device's
     regulatory status. One row holds them, so the frontend reads them
     here instead of keeping a copy.
 
     Attributes:
         id (db.Column): The primary key.
-        name ... logo_light (db.Column): One column per key in FIELDS.
+        name ... notice (db.Column): One column per key in FIELDS.
     """
     __tablename__ = 'odin_site'
 

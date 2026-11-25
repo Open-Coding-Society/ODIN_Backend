@@ -106,11 +106,14 @@ each key with what it holds and its size:
 
 - Text: `name`, `tagline`, `phone`, `email`, `address`, `copyright`, and `notice_title` with
   `notice`: the notice of the device's regulatory status, which every page carries. Its words
-  are the original site's, where it is a section of the home page.
+  are the original site's, where it is a section of the home page. To raise with ODIN: the
+  heading says "FDA Clearance" and the text under it says the device is not yet cleared. The
+  heading is kept as ODIN wrote it, and it now shows on every page.
 - Links, which must be full `https://` addresses: `instagram`, `linkedin`.
 - Images, which must name a file in `odin/images/`: `logo_dark` (the logo in black, for light
   backgrounds), `logo_light` (the name in white, for dark backgrounds; its mark is black, see
-  `odin/images/README.md`) and `icon` (the small square mark a browser shows on the tab).
+  `odin/images/README.md`) and `icon` (the square mark for the browser's tab; on the original
+  site it is the web manifest's icon).
 
 Every key is required and must not be blank.
 
@@ -226,17 +229,21 @@ or none:
 - A section that was removed from the file, or renamed in it, stays in the database and on the
   page. Delete its row to take it off.
 
-The `how_it_works` and `features` sections moved from `home` to the `how_it_works` page, and the
-`home` hero now shows the headset photo. To bring a database seeded before that up to date:
+Three things moved after the first seed. The `how_it_works` and `features` sections went from
+`home` to the `how_it_works` page, the `home` hero now shows the headset photo, and the `fda`
+section's words became the notice in the site basics. To bring a database seeded before any of
+that up to date:
 
 1. `python scripts/db_upgrade.py --check`, then `python scripts/db_upgrade.py`. It adds the
    `image_link` column, and the `icon`, `notice_title` and `notice` columns of `odin_site`. Until
-   it has run, `GET /api/odin/page` and `GET /api/odin/site` answer 500.
-2. `DELETE FROM odin_section WHERE page = 'home' AND name IN ('how_it_works', 'features', 'fda')`.
-   The `fda` section's words are now the notice in the site basics.
+   it has run, `GET /api/odin/page` or `GET /api/odin/site` answers 500.
+2. `DELETE FROM odin_section WHERE page = 'home' AND name IN ('how_it_works', 'features')`
 3. `UPDATE odin_section SET image = NULL, image_alt = NULL WHERE page = 'home' AND name = 'hero'`
 4. `python scripts/init_odin_site.py`. It adds the new pages, fills the hero's photo and fills
    the site's icon and notice.
+5. Once `GET /api/odin/site` sends the notice:
+   `DELETE FROM odin_section WHERE page = 'home' AND name = 'fda'`. Doing this last means the
+   notice is never missing from the site.
 
 To change wording a database already holds, change it in the file and in the saved row (a database
 update). Bad data stops the seed with a message naming the file, the page and the section by its
