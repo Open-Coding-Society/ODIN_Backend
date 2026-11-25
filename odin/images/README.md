@@ -34,9 +34,10 @@ Size and file type. The lens photo also has a thin line trimmed from its top and
   PNG images named `.jpeg`. They are WebP here, which keeps the clear corners at
   a small size.
 - The eye picture has the same 46 frames and timing as the original GIF, saved as an
-  animated WebP at about a seventh of the size. The original loops without end. This
+  animated WebP at about an eighth of the size. The original loops without end. This
   one plays once, about two seconds, and stops: a page gives a visitor no way to pause
-  a moving picture.
+  a moving picture. Only the file's loop count was changed for that (two bytes in its
+  ANIM chunk), so the frames are untouched.
 - The EvoNexus logo is 600 pixels square.
 
 ## Things to know
