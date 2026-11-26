@@ -8,19 +8,19 @@
   {
     "name": "how_it_works",
     "title": "How it works",
-    "description": "ODIN utilizes state-of-the-art eye-tracking software to capture precise ocular metrics during our assessments, which are then fed into our advanced machine-learning algorithms for accurate and comprehensive user evaluation.",
+    "description": "During an assessment, ODIN's eye-tracking software measures how the eyes move, and a machine-learning model evaluates those measurements.",
     "menu": "How it works"
   },
   {
     "name": "about",
     "title": "About",
-    "description": "Our mission is to redefine concussion care to preserve brain health.",
+    "description": "Our mission is to improve concussion care to protect brain health.",
     "menu": "About"
   },
   {
     "name": "contact",
     "title": "Contact Us",
-    "description": "Please reach out regarding any questions about our product or company",
+    "description": "For questions about ODIN or the company, call or email us.",
     "menu": "Contact Us"
   },
   {

@@ -5,13 +5,13 @@
       "kicker": "Introducing",
       "title": "ODIN™",
       "text": "AI-powered eye-tracking technology for rapid, non-invasive concussion assessments.",
-      "action": "Contact Us!",
+      "action": "Contact us",
       "image": "product-headset.jpg",
       "image_alt": "The ODIN headset from the front: a white headset with the ODIN name and eye mark printed on its face."
     },
     {
       "name": "statistics",
-      "title": "Concussion Chaos",
+      "title": "How common concussions are",
       "items": [
         {
           "title": "3,800,000",
@@ -33,14 +33,14 @@
     },
     {
       "name": "pitch",
-      "title": "Revolutionizing Concussion Care Across All Ages",
-      "text": "Experience the future of concussion care with ODIN’s advanced, data-driven assessments. Our objective evaluations provide unbiased, precise results empowering medical professionals with the crucial information needed for informed decision-making. Protect the well-being of athletes at every level with technology that sets a new standard in sports safety."
+      "title": "Concussion care for every age",
+      "text": "ODIN gives an objective, data-based concussion assessment. Medical professionals get clear results to base their decisions on. It is made for athletes at every level."
     }
   ],
   "how_it_works": [
     {
       "name": "how_it_works",
-      "text": "ODIN utilizes state-of-the-art eye-tracking software to capture precise ocular metrics during our assessments, which are then fed into our advanced machine-learning algorithms for accurate and comprehensive user evaluation.",
+      "text": "During an assessment, ODIN's eye-tracking software measures how the eyes move. A machine-learning model then evaluates those measurements.",
       "image": "eye-tracking.webp",
       "image_alt": "A close view of a person's eyes as they open."
     },
@@ -49,19 +49,19 @@
       "items": [
         {
           "title": "Portable",
-          "text": "Engineered for immediate point of care use."
+          "text": "Made to be used at the point of care."
         },
         {
           "title": "Interpretable Results",
-          "text": "Clear, straightforward metrics any health care professional can understand."
+          "text": "Clear metrics that any health care professional can read."
         },
         {
           "title": "Quick",
-          "text": "Access real-time, actionable insights when it matters most."
+          "text": "Results come back in real time."
         },
         {
           "title": "Data Sharing",
-          "text": "Seamlessly share results with stakeholders such as other medical professionals, parents, and coaches."
+          "text": "Results can be shared with other medical professionals, parents and coaches."
         }
       ],
       "image": "product-headset.jpg",
@@ -71,7 +71,7 @@
   "about": [
     {
       "name": "mission",
-      "text": "At ODIN Diagnostics we are committed to making a significant leap forward in brain health. Our team comprises a diverse group of interdisciplinary engineers, entrepreneurs, and athletes united by a shared passion for creating a safer future and driving meaningful change.\n\nWe understand the complexities of concussions and are committed to addressing these challenges head-on. Our mission is to redefine concussion care to preserve brain health. We aim to prevent further damage after injury through early detection and intervention and by guiding evidence-based treatments to reduce long-term effects.\n\nWe are driven to make a lasting impact and enhance safety across all areas where brain injuries occur.",
+      "text": "ODIN Diagnostics is a team of engineers, entrepreneurs and athletes working on concussion care.\n\nOur mission is to improve concussion care to protect brain health. Finding a concussion early means treatment can start early, which helps prevent further damage after the injury.\n\nWe also aim to guide evidence-based treatment that reduces long-term effects.",
       "image": "hero-headset-lens.webp",
       "image_alt": "Green light falls on one lens of a headset, seen up close from the side the wearer looks into."
     }
@@ -79,7 +79,7 @@
   "contact": [
     {
       "name": "intro",
-      "text": "Please reach out regarding any questions about our product or company"
+      "text": "For questions about ODIN or the company, call or email us."
     },
     {
       "name": "phone",
