@@ -107,8 +107,8 @@ each key with what it holds and its size:
 - Text: `name`, `tagline`, `phone`, `email`, `address`, `copyright`, and `notice_title` with
   `notice`: the notice of the device's regulatory status, which every page carries. Its words
   are the original site's, where it is a section of the home page. To raise with ODIN: the
-  heading says "FDA Clearance" and the text under it says the device is not yet cleared. The
-  heading is kept as ODIN wrote it, and it now shows on every page. `notice_short` is one line
+  heading says "FDA clearance" and the text under it says the device is not yet cleared. The
+  heading keeps ODIN's words in sentence case, and it shows on every page. `notice_short` is one line
   that a page puts beside the product's claims, pointing to the full notice in the footer, so
   the full notice shows once on each page.
 - Links, which must be full `https://` addresses: `instagram`, `linkedin`.
