@@ -41,8 +41,8 @@
     {
       "name": "how_it_works",
       "text": "During an assessment, ODIN's eye-tracking software measures how the eyes move. A machine-learning model then evaluates those measurements.",
-      "image": "eye-tracking.webp",
-      "image_alt": "A close view of a person's eyes as they open."
+      "image": "hero-headset-lens.webp",
+      "image_alt": "Green light falls on one lens of a headset, seen up close from the side the wearer looks into."
     },
     {
       "name": "features",
