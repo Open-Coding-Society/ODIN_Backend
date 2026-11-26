@@ -22,6 +22,7 @@ FIELDS = {
     'icon': (IMAGE, 100),          # the small square mark a browser shows on the tab
     'notice_title': (TEXT, 100),   # the heading of the notice every page carries
     'notice': (TEXT, 1000),        # the notice itself: the device's regulatory status
+    'notice_short': (TEXT, 100),   # one line beside the product's claims that points to the notice
 }
 
 
@@ -56,6 +57,7 @@ class OdinSite(db.Model):
     icon = db.Column(db.String(FIELDS['icon'][1]), nullable=True)
     notice_title = db.Column(db.String(FIELDS['notice_title'][1]), nullable=True)
     notice = db.Column(db.String(FIELDS['notice'][1]), nullable=True)
+    notice_short = db.Column(db.String(FIELDS['notice_short'][1]), nullable=True)
 
     # Constructor: takes the checked values, one per key in FIELDS
     def __init__(self, values):
