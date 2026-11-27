@@ -107,8 +107,10 @@ each key with what it holds and its size:
 - Text: `name`, `tagline`, `phone`, `email`, `address`, `copyright`, and `notice_title` with
   `notice`: the notice of the device's regulatory status, which every page carries. Its words
   are the original site's, where it is a section of the home page. To raise with ODIN: the
-  heading says "FDA Clearance" and the text under it says the device is not yet cleared. The
-  heading is kept as ODIN wrote it, and it now shows on every page.
+  heading says "FDA clearance" and the text under it says the device is not yet cleared. The
+  heading keeps ODIN's words in sentence case, and it shows on every page. `notice_short` is one line
+  that a page puts beside the product's claims, pointing to the full notice in the footer, so
+  the full notice shows once on each page.
 - Links, which must be full `https://` addresses: `instagram`, `linkedin`.
 - Images, which must name a file in `odin/images/`: `logo_dark` (the logo in black, for light
   backgrounds), `logo_light` (the name in white, for dark backgrounds; its mark is black, see
@@ -235,7 +237,7 @@ section's words became the notice in the site basics. To bring a database seeded
 that up to date:
 
 1. `python scripts/db_upgrade.py --check`, then `python scripts/db_upgrade.py`. It adds the
-   `image_link` column, and the `icon`, `notice_title` and `notice` columns of `odin_site`. Until
+   `image_link` column, and the `icon`, `notice_title`, `notice` and `notice_short` columns of `odin_site`. Until
    it has run, `GET /api/odin/page` or `GET /api/odin/site` answers 500.
 2. `DELETE FROM odin_section WHERE page = 'home' AND name IN ('how_it_works', 'features')`
 3. `UPDATE odin_section SET image = NULL, image_alt = NULL WHERE page = 'home' AND name = 'hero'`

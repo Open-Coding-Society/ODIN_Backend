@@ -1,6 +1,6 @@
 {
   "name": "ODIN Diagnostics",
-  "tagline": "Redefining concussion care to preserve brain health.",
+  "tagline": "Concussion assessment with eye tracking.",
   "phone": "(805) 300-1100",
   "email": "contact@odin-diagnostics.com",
   "address": "9191 Towne Centre Dr Ste 150, San Diego, CA 92122",
@@ -10,6 +10,7 @@
   "logo_dark": "logo-dark.svg",
   "logo_light": "logo-light.svg",
   "icon": "site-icon.png",
-  "notice_title": "FDA Clearance",
-  "notice": "This device is an investigational product and has not yet been cleared or approved by the U.S. Food and Drug Administration. It is currently being offered for research use only and is not yet intended to diagnose, treat, cure, or prevent any disease."
+  "notice_title": "FDA clearance",
+  "notice": "This device is an investigational product and has not yet been cleared or approved by the U.S. Food and Drug Administration. It is currently being offered for research use only and is not yet intended to diagnose, treat, cure, or prevent any disease.",
+  "notice_short": "Investigational device. See the notice below."
 }
