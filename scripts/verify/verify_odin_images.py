@@ -38,6 +38,22 @@ def sha256(path):
         return hashlib.sha256(fh.read()).hexdigest()
 
 
+def webp_loops(path):
+    """How many times a WebP picture plays: 0 for without end, None for a picture that does not
+    move. The count is two bytes in the file's ANIM chunk, after four bytes of background colour."""
+    with open(path, "rb") as fh:
+        data = fh.read()
+    if data[:4] != b"RIFF" or data[8:12] != b"WEBP":
+        raise ValueError(f"{os.path.basename(path)} is not a WebP file")
+    at = 12  # past RIFF, the size and WEBP
+    while at + 8 <= len(data):
+        name, size = data[at:at + 4], int.from_bytes(data[at + 4:at + 8], "little")
+        if name == b"ANIM":
+            return int.from_bytes(data[at + 12:at + 14], "little")
+        at += 8 + size + (size & 1)  # chunks are padded to an even length
+    return None
+
+
 def main():
     real_before = sha256(REAL_DB) if os.path.exists(REAL_DB) else None
 
@@ -80,6 +96,11 @@ def main():
     check("each file type is sent as the content type browsers expect", dict(IMAGE_TYPES) == CONTENT_TYPES, IMAGE_TYPES)
     heavy = [name for name in images if os.path.getsize(os.path.join(IMAGE_FOLDER, name)) > MAX_BYTES]
     check("every image is under 1 MB", not heavy, heavy)
+    endless = [name for name in images if name.endswith(".webp") and webp_loops(os.path.join(IMAGE_FOLDER, name)) == 0]
+    check("no WebP picture loops without end: a page gives a visitor no way to pause one", not endless, endless)
+    # A GIF's loop count is not read here, so none is kept: a moving picture is saved as WebP
+    check("no picture is a GIF, whose loop this script does not read", not [name for name in images if name.endswith(".gif")])
+    check("the eye picture moves, and plays once", webp_loops(os.path.join(IMAGE_FOLDER, "eye-tracking.webp")) == 1)
     with open(os.path.join(IMAGE_FOLDER, "README.md"), encoding="utf-8") as fh:
         listed = sorted(re.findall(r"^\| `([^`]+)` \|", fh.read(), flags=re.M))
     check("the README's table lists exactly the images in the folder", listed == images, f"{listed} vs {images}")

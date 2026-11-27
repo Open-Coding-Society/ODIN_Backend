@@ -1,7 +1,9 @@
 from flask import Blueprint, request, send_from_directory
 from flask_restful import Api, Resource # used for REST API building
 from model.odin_image import IMAGE_FOLDER, image_file, image_type
-from model.odin_section import OdinSection, is_name
+from model.odin_page import OdinPage
+from model.odin_section import OdinSection
+from model.odin_seed import is_name
 from model.odin_site import OdinSite
 
 odin_api = Blueprint('odin_api', __name__,
@@ -18,24 +20,38 @@ class OdinAPI:
 
     class _Site(Resource):  # The basics every page shows
         def get(self): # Read method
-            ''' The company name, tagline, contact details, logos and footer lines '''
+            ''' The company name, tagline, contact details, logos, icon, footer lines and the notice every page carries '''
             site = OdinSite.current()
             if site is None:
                 return {'message': 'The ODIN site content has not been set up.'}, 404
             return site.read()
 
-    class _Page(Resource):  # One page's sections
+    class _Pages(Resource):  # Every page, for the site menu
         def get(self): # Read method
-            ''' The sections of the page named by ?name=, in the order the page shows them '''
+            ''' Each page's name, title, description and menu words, in menu order '''
+            pages = OdinPage.listed()
+            if not pages:
+                return {'message': 'The ODIN pages have not been set up.'}, 404
+            return {'pages': [page.read() for page in pages]}
+
+    class _Page(Resource):  # One page's details and sections
+        def get(self): # Read method
+            ''' The title, description and sections of the page named by ?name=, the sections in
+            the order the page shows them '''
             name = request.args.get('name')
             if not name:
                 return {'message': 'Give the page name, as in ?name=home', 'errors': {'name': 'is required'}}, 400
             # Only a well-formed name is looked up. MySQL compares text without regard to case, so
             # Home would find the home page there and not on SQLite.
-            sections = OdinSection.for_page(name) if is_name(name) else []
+            # A page is in the page list and has sections. With only one of the two there is no
+            # page to show: sections alone would have no title.
+            page = OdinPage.named(name) if is_name(name) else None
+            sections = OdinSection.for_page(name) if page else []
             if not sections:
                 return {'message': 'No ODIN page has that name.'}, 404
-            return {'page': name, 'sections': [section.read() for section in sections]}
+            details = page.read()
+            return {'page': name, 'title': details['title'], 'description': details['description'],
+                    'sections': [section.read() for section in sections]}
 
     class _Image(Resource):  # One of the website's images
         def get(self): # Read method
@@ -57,5 +73,6 @@ class OdinAPI:
 
     # building RESTapi endpoint
     api.add_resource(_Site, '/site')
+    api.add_resource(_Pages, '/pages')
     api.add_resource(_Page, '/page')
     api.add_resource(_Image, '/image')

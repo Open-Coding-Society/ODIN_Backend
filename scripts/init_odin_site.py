@@ -3,12 +3,12 @@
 
 scripts/db_init.py seeds every table when it builds a database. scripts/db_upgrade.py adds the
 ODIN tables, or a new column of one, to an existing database but leaves them empty. This adds
-what is missing. It seeds the site basics first, then the page sections. A missing row is added,
+what is missing. It seeds the site basics first, then the pages, then the page sections. A missing row is added,
 and a saved row gets only the fields it has no text for. Text that is there is never replaced,
 so it is safe to run again.
 
 Usage:  python scripts/init_odin_site.py        (from the flask repo root, after db_upgrade.py)
-Exit:   0 the site basics and the page sections are all there, 1 otherwise.
+Exit:   0 the site basics, the pages and the page sections are all there, 1 otherwise.
 """
 import os
 import sys
@@ -16,7 +16,10 @@ import sys
 # Add the directory containing __init__.py to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from __init__ import app, db
+from model.odin_page import OdinPage, initOdinPages
 from model.odin_section import OdinSection, initOdinSections
 from model.odin_site import OdinSite, initOdinSite
 
@@ -54,6 +57,25 @@ def seed_site():
         return 0, "The ODIN site basics are already there. Nothing changed."
 
 
+def seed_pages():
+    """(exit code, message) for the pages."""
+    with app.app_context():
+        problem = not_ready(OdinPage)
+        if problem:
+            return 1, problem
+        try:
+            written = initOdinPages()
+        except ValueError as error:
+            return 1, f"Not seeded. {error}"
+        except SQLAlchemyError as error:
+            # A row the database refuses, such as a hand-entered name that differs only by case on
+            # MySQL. The seeds after this one still run.
+            return 1, f"Not seeded. The database refused the pages ({error.__class__.__name__})."
+        if written:
+            return 0, f"Saved from model/dataconfigs/odin_page_list.json: {', '.join(written)}."
+        return 0, "The ODIN pages are already there. Nothing changed."
+
+
 def seed_sections():
     """(exit code, message) for the page sections."""
     with app.app_context():
@@ -70,10 +92,10 @@ def seed_sections():
 
 
 def main():
-    """Runs both seeds and returns the exit code. Each message is printed as its seed finishes, so
-    the first is on screen even if the second stops with an error."""
+    """Runs each seed and returns the exit code. Each message is printed as its seed finishes, so
+    the earlier ones are on screen even if a later one stops with an error."""
     exit_code = 0
-    for seed in (seed_site, seed_sections):
+    for seed in (seed_site, seed_pages, seed_sections):
         code, message = seed()
         print(message, flush=True)
         exit_code = max(exit_code, code)

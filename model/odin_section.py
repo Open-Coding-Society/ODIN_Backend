@@ -1,18 +1,12 @@
 """ ODIN page sections """
 import os
-import re
 
 from __init__ import db
-from model.odin_seed import IMAGE, TEXT, checked_value, load_seed
+from model.odin_seed import IMAGE, LINK, NAME_MAX, NAME_RULE, TEXT, checked_value, is_name, load_seed
 
 # The sections each page of the website starts with. They are data, so the wording a new database
 # gets never comes from code.
 SEED_FILE = os.path.join(os.path.dirname(__file__), "dataconfigs", "odin_pages.json")
-
-# A page's name and a section's name, such as how_it_works
-NAME_MAX = 40
-NAME_PATTERN = re.compile(r'[a-z][a-z0-9_]*')
-NAME_RULE = f"must be at most {NAME_MAX} lowercase letters, digits and underscores, and start with a letter"
 
 # The parts a section can have, all optional. JSON key (also the column name): (what it holds, max length)
 FIELDS = {
@@ -22,6 +16,7 @@ FIELDS = {
     'action': (TEXT, 100),     # the words on the section's button
     'image': (IMAGE, 100),
     'image_alt': (TEXT, 255),  # what the image shows, for a visitor who cannot see it
+    'image_link': (LINK, 255), # where the section's image leads, on another site
 }
 
 # The parts of one item in a section's list, such as one statistic or one feature. Both are required.
@@ -29,11 +24,6 @@ ITEM_FIELDS = {
     'title': (TEXT, 100),
     'text': (TEXT, 500),
 }
-
-
-def is_name(value):
-    """True for text that can name a page or a section."""
-    return isinstance(value, str) and len(value) <= NAME_MAX and NAME_PATTERN.fullmatch(value) is not None
 
 
 class OdinSection(db.Model):
@@ -48,7 +38,7 @@ class OdinSection(db.Model):
         page (db.Column): The page the section is on, such as home.
         name (db.Column): The section's name, which no other section of the page has, such as hero.
         position (db.Column): Where the section comes on its page, counting from 0.
-        kicker ... image_alt (db.Column): One column per key in FIELDS.
+        kicker ... image_link (db.Column): One column per key in FIELDS.
         items (db.Column): The section's list, each item holding the keys in ITEM_FIELDS.
     """
     __tablename__ = 'odin_section'
@@ -65,6 +55,7 @@ class OdinSection(db.Model):
     action = db.Column(db.String(FIELDS['action'][1]), nullable=True)
     image = db.Column(db.String(FIELDS['image'][1]), nullable=True)
     image_alt = db.Column(db.String(FIELDS['image_alt'][1]), nullable=True)
+    image_link = db.Column(db.String(FIELDS['image_link'][1]), nullable=True)
     items = db.Column(db.JSON, nullable=False)
 
     # Constructor: takes the page, the place on it, and one section's checked values
@@ -83,6 +74,9 @@ class OdinSection(db.Model):
     def read(self):
         missing = self.missing()
         parts = {key: None if key in missing else getattr(self, key) for key in FIELDS}
+        # A link with no image to follow it from is not shown
+        if parts['image'] is None:
+            parts['image_link'] = None
         return {'name': self.name, **parts, 'items': self.items or []}
 
     def missing(self):
@@ -97,6 +91,11 @@ class OdinSection(db.Model):
         # filled only if the file still names the saved image.
         if ('image' in missing) != ('image_alt' in missing) and self.image != values['image']:
             missing = [key for key in missing if key not in ('image', 'image_alt')]
+        # So does the place an image leads to. It is filled only for the image the file gives it
+        # to: the saved one, or the file's own when the section has none saved.
+        shown = values['image'] if 'image' in missing else self.image
+        if shown != values['image']:
+            missing = [key for key in missing if key != 'image_link']
         filled = [key for key in missing if values[key] is not None]
         for key in filled:
             setattr(self, key, values[key])
@@ -156,6 +155,8 @@ def _checked_section(section):
             return None, f"{key} {problem}"
     if (values['image'] is None) != (values['image_alt'] is None):
         return None, "image needs image_alt, and image_alt needs image"
+    if values['image_link'] is not None and values['image'] is None:
+        return None, "image_link needs an image, which is what a visitor follows it from"
     values['items'], problem = _checked_items(section.get('items'))
     if problem:
         return None, problem

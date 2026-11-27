@@ -19,6 +19,9 @@ FIELDS = {
     'linkedin': (LINK, 255),
     'logo_dark': (IMAGE, 100),
     'logo_light': (IMAGE, 100),
+    'icon': (IMAGE, 100),          # the small square mark a browser shows on the tab
+    'notice_title': (TEXT, 100),   # the heading of the notice every page carries
+    'notice': (TEXT, 1000),        # the notice itself: the device's regulatory status
 }
 
 
@@ -26,13 +29,14 @@ class OdinSite(db.Model):
     """
     OdinSite Model
 
-    What every page of the ODIN Diagnostics website shows: the company name, its tagline, how to
-    reach it, its logos and the lines in the footer. One row holds them, so the frontend reads them
+    What every page of the ODIN Diagnostics website shows: the company name, its tagline, how
+    to reach it, its logos and icon, the lines in the footer and the notice of the device's
+    regulatory status. One row holds them, so the frontend reads them
     here instead of keeping a copy.
 
     Attributes:
         id (db.Column): The primary key.
-        name ... logo_light (db.Column): One column per key in FIELDS.
+        name ... notice (db.Column): One column per key in FIELDS.
     """
     __tablename__ = 'odin_site'
 
@@ -49,6 +53,9 @@ class OdinSite(db.Model):
     linkedin = db.Column(db.String(FIELDS['linkedin'][1]), nullable=True)
     logo_dark = db.Column(db.String(FIELDS['logo_dark'][1]), nullable=True)
     logo_light = db.Column(db.String(FIELDS['logo_light'][1]), nullable=True)
+    icon = db.Column(db.String(FIELDS['icon'][1]), nullable=True)
+    notice_title = db.Column(db.String(FIELDS['notice_title'][1]), nullable=True)
+    notice = db.Column(db.String(FIELDS['notice'][1]), nullable=True)
 
     # Constructor: takes the checked values, one per key in FIELDS
     def __init__(self, values):

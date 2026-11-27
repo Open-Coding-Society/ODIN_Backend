@@ -20,8 +20,10 @@ REAL_DB = os.path.join(REPO, "instance", "volumes", "user_management.db")
 PASSWORD = "Aa1!" + secrets.token_urlsafe(16)
 URL = "/api/odin/page"
 HOME = URL + "?name=home"
-# The home page's sections, in the order the current site shows them
-HOME_ORDER = ["hero", "statistics", "features", "how_it_works", "pitch", "fda"]
+# The home page's sections, in the order the page shows them
+HOME_ORDER = ["hero", "statistics", "pitch"]
+# Every page the seed holds
+PAGES = ["home", "how_it_works", "about", "contact", "not_found"]
 FILE = "odin_pages.json: "
 _failures = []
 
@@ -59,11 +61,15 @@ def main():
     import init_odin_site
     from model import account_types
     from model.user import User
+    from model.odin_page import OdinPage
     from model.odin_section import OdinSection, initOdinSections, FIELDS, ITEM_FIELDS, NAME_MAX, SEED_FILE
     app.config["TESTING"] = True
 
     with open(SEED_FILE, encoding="utf-8") as fh:
         seed = json.load(fh)
+
+    # How many sections the seed holds, over all its pages
+    seeded = sum(len(sections) for sections in seed.values())
 
     def as_served(section):
         """One section of a seed file as the route sends it: every part, null for one it does not have."""
@@ -115,7 +121,16 @@ def main():
         got = refusal(content)
         check(label, got == expected, got)
 
+    def listed(page):
+        """Puts the page in the page list if it is not there. Sections are served only for a page
+        in the list, and these checks are about the sections."""
+        with app.app_context():
+            if OdinPage.named(page) is None:
+                db.session.add(OdinPage(OdinPage.query.count(), {"name": page, "title": page, "description": None, "menu": None}))
+                db.session.commit()
+
     def served(page="home"):
+        listed(page)
         return app.test_client().get(f"{URL}?name={page}").get_json()
 
     def order():
@@ -244,11 +259,41 @@ def main():
     check("every text part of the longest length is accepted and served whole",
           run_seed({"home": [fullest]}) == ["home.full"] and served()["sections"][0] == as_served(fullest))
     clear()
-    features = f"home section {place('features')}: "
+    hero = f"home section {place('hero')}: "
     for bad in ("missing.svg", "../main.py", "README.md", "PRODUCT-HEADSET.JPG"):
-        refused(f"image: {bad!r} is refused", with_section("features", image=bad), features + "image must name an image in odin/images/")
-    refused("an image without its description is refused", with_section("features", image_alt=None), features + "image needs image_alt, and image_alt needs image")
-    refused("a description without its image is refused", with_section("features", image=None), features + "image needs image_alt, and image_alt needs image")
+        refused(f"image: {bad!r} is refused", with_section("hero", image=bad), hero + "image must name an image in odin/images/")
+    refused("an image without its description is refused", with_section("hero", image_alt=None), hero + "image needs image_alt, and image_alt needs image")
+    refused("a description without its image is refused", with_section("hero", image=None), hero + "image needs image_alt, and image_alt needs image")
+    bad_links = ("http://evonexus.org/", "evonexus.org", "javascript:alert(1)", "https://", "https://user:pass@a.example/",
+                 "https://a.example/x y", "https://a.example/\"onclick", "https://a.example/<x>", "/about/")
+    for bad in bad_links:
+        refused(f"link: {bad!r} is refused", with_section("hero", image_link=bad),
+                hero + "image_link must be a full https link, such as https://example.com/page")
+    refused("a link without an image to follow it from is refused", with_section("statistics", image_link="https://example.com/"),
+            f"home section {place('statistics')}: image_link needs an image, which is what a visitor follows it from")
+    check("a section with an image and a link is saved, and the link is served",
+          run_seed({"home": [{"name": "logo", "image": "partner-evonexus.png", "image_alt": "A logo", "image_link": "https://one.example/"}]})
+          == ["home.logo"] and served()["sections"][0]["image_link"] == "https://one.example/")
+    # The link belongs to its image, as the description does
+    with app.app_context():
+        OdinSection.query.filter_by(page="home", name="logo").first().image_link = None
+        db.session.commit()
+    other = {"name": "logo", "image": "product-headset.jpg", "image_alt": "Another", "image_link": "https://other.example/"}
+    check("a link the file gives to another image is not put on the saved image",
+          run_seed({"home": [other]}) == [] and served()["sections"][0]["image_link"] is None, served()["sections"][0])
+    same = {"name": "logo", "image": "partner-evonexus.png", "image_alt": "A logo", "image_link": "https://two.example/"}
+    check("a link the file gives to the saved image is filled in",
+          run_seed({"home": [same]}) == ["home.logo.image_link"] and served()["sections"][0]["image_link"] == "https://two.example/")
+    with app.app_context():
+        row = OdinSection.query.filter_by(page="home", name="logo").first()
+        row.image = row.image_alt = None
+        db.session.commit()
+    check("a saved link whose image was taken away is not served", served()["sections"][0]["image_link"] is None, served()["sections"][0])
+    check("when the seed fills the image again, the saved link is served again: saved text is never replaced",
+          run_seed({"home": [other]}) == ["home.logo.image", "home.logo.image_alt"]
+          and served()["sections"][0]["image"] == "product-headset.jpg"
+          and served()["sections"][0]["image_link"] == "https://two.example/", served()["sections"][0])
+    clear()
     refused("a section with only a name is refused", {"home": [{"name": "empty"}]}, "home section 1: needs a title, text, an image or items")
     refused("a section with only a line above the title and a button is refused",
             {"home": [{"name": "empty", "kicker": "Introducing", "action": "Contact Us!"}]}, "home section 1: needs a title, text, an image or items")
@@ -305,15 +350,16 @@ def main():
         code = init_odin_site.main()
     printed = out.getvalue().strip().splitlines()
     check("init_odin_site.py seeds an empty database, and prints what each seed did",
-          code == 0 and rows() == len(seed["home"]) and len(printed) == 2 and "home.hero" in printed[1], printed)
+          code == 0 and rows() == seeded and len(printed) == 3 and "home.hero" in printed[2], printed)
     code, message = init_odin_site.seed_sections()
-    check("init_odin_site.py run again changes nothing, and says so", code == 0 and rows() == len(seed["home"]) and "Nothing changed" in message, message)
+    check("init_odin_site.py run again changes nothing, and says so", code == 0 and rows() == seeded and "Nothing changed" in message, message)
     out = io.StringIO()
     with contextlib.redirect_stdout(out), mock.patch.object(init_odin_site, "initOdinSections", side_effect=ValueError("odin_pages.json: broken")):
         code = init_odin_site.main()
     printed = out.getvalue().strip().splitlines()
-    check("when one seed is refused the script still reports the other, and exits 1",
-          code == 1 and len(printed) == 2 and "Nothing changed" in printed[0] and printed[1] == "Not seeded. odin_pages.json: broken", printed)
+    check("when one seed is refused the script still reports the others, and exits 1",
+          code == 1 and len(printed) == 3 and all("Nothing changed" in line for line in printed[:2])
+          and printed[2] == "Not seeded. odin_pages.json: broken", printed)
     clear()
 
     # generate_data is a Flask command. standalone_mode=False makes it return here instead of exiting,
@@ -325,30 +371,51 @@ def main():
     r = anon.get(HOME)
     body = r.get_json()
     check("GET needs no login", r.status_code == 200, r.status_code)
-    check("GET returns the page's name and its sections", sorted(body) == ["page", "sections"] and body["page"] == "home", body)
-    check("the home page's sections come in the order the current site shows them", order() == HOME_ORDER, order())
+    check("GET returns the page's name, title, description and sections",
+          sorted(body) == ["description", "page", "sections", "title"] and body["page"] == "home", body)
+    check("the home page's sections come in the order the page shows them", order() == HOME_ORDER, order())
+    check("the seed holds exactly the pages the site has", list(seed) == PAGES, list(seed))
+    notice = (anon.get("/api/odin/site").get_json() or {}).get("notice")
+    texts = [section.get("text") for sections in seed.values() for section in sections]
+    check("the regulatory notice is in the site basics and in no section, so its words live in one place",
+          bool(notice) and notice not in texts and not any(section["name"] == "fda" for sections in seed.values() for section in sections))
+    for page in PAGES:
+        got = anon.get(URL, query_string={"name": page}).get_json() or {}
+        check(f"the {page} page is served with the sections odin_pages.json holds for it",
+              got.get("sections") == [as_served(section) for section in seed[page]], got)
+    mission = served("about")["sections"][0]["text"]
+    check("the about page's mission keeps its three paragraphs, with a blank line between them",
+          len(mission.split("\n\n")) == 3 and all(part.strip() for part in mission.split("\n\n")), mission)
+    logo = [section for section in served("contact")["sections"] if section["name"] == "evonexus"]
+    check("the contact page's EvoNexus logo carries its link",
+          len(logo) == 1 and logo[0]["image_link"] == "https://evonexus.org/" and logo[0]["image"] == "partner-evonexus.png", logo)
     check("each section has its name, every key in FIELDS and its items, and nothing else",
           all(sorted(section) == sorted(["name", "items", *FIELDS]) for section in body["sections"]))
     check("GET returns what odin_pages.json holds, with null for a part a section does not have",
           body["sections"] == [as_served(section) for section in seed["home"]], body)
     check("a section without a list has an empty list of items", body["sections"][place("hero") - 1]["items"] == [])
-    images = [section["image"] for section in body["sections"] if section["image"]]
-    check("every image a section names is one the image route serves",
+    images = sorted({section["image"] for page in PAGES for section in served(page)["sections"] if section["image"]})
+    check("every image a section names, on any page, is one the image route serves",
           bool(images) and all(anon.get(f"/api/odin/image?name={image}").status_code == 200 for image in images), images)
     # MySQL compares text without regard to case or accents, so a name that is not well formed must
     # never reach the database: Home would find the home page there.
-    with mock.patch.object(OdinSection, "for_page", wraps=real_for_page) as looked_up:
+    # The route looks the name up in the page list first, and reads sections only for a page it finds.
+    real_named = OdinPage.named
+    with mock.patch.object(OdinPage, "named", wraps=real_named) as page_looked_up, \
+            mock.patch.object(OdinSection, "for_page", wraps=real_for_page) as looked_up:
         for page in ("Home", "HOME", "hömé", "home ", "home' OR '1'='1", "x" * 500):
             r = anon.get(URL, query_string={"name": page})
             check(f"GET for the name {page[:16]!r}, which no page can have, is a 404 with a message",
                   r.status_code == 404 and bool((r.get_json() or {}).get("message")), r.status_code)
-        check("a name no page can have is never looked up in the database", looked_up.call_count == 0, looked_up.call_count)
+        check("a name no page can have is never looked up in the database",
+              page_looked_up.call_count == 0 and looked_up.call_count == 0, f"{page_looked_up.call_count} {looked_up.call_count}")
         r = anon.get(URL, query_string={"name": "missing"})
-        check("GET for a well-formed name with no page is looked up, and is a 404 with a message",
-              looked_up.call_count == 1 and r.status_code == 404 and bool((r.get_json() or {}).get("message")), r.status_code)
+        check("GET for a well-formed name with no page is looked up in the page list, and is a 404 with a message",
+              page_looked_up.call_count == 1 and looked_up.call_count == 0
+              and r.status_code == 404 and bool((r.get_json() or {}).get("message")), r.status_code)
 
     # Seeding a database that already has sections
-    check("running the seed again writes nothing", run_seed() == [] and rows() == len(seed["home"]) and served() == body)
+    check("running the seed again writes nothing", run_seed() == [] and rows() == seeded and served() == body)
     check("a later seed file does not replace text that is saved",
           run_seed(with_section("hero", title="Another Title", text="Another line.")) == [] and served() == body)
     # These checks give an image to a section the file has none for
@@ -410,8 +477,9 @@ def main():
     check("the checks above left the home page as the file has it", served() == body)
 
     check("a page added to the file later is saved beside the first, and each is served by its own name",
-          run_seed({**seed, "about": [{"name": "mission", "title": "Our mission"}]}) == ["about.mission"]
-          and served("about") == {"page": "about", "sections": [as_served({"name": "mission", "title": "Our mission"})]}
+          run_seed({**seed, "press": [{"name": "notes", "title": "Press notes"}]}) == ["press.notes"]
+          and served("press") == {"page": "press", "title": "press", "description": None,
+                                    "sections": [as_served({"name": "notes", "title": "Press notes"})]}
           and served() == body)
 
     for method in ("post", "put", "patch", "delete"):

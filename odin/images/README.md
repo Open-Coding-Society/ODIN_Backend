@@ -5,16 +5,17 @@ keeps no copy: a page loads each one from `GET /api/odin/image?name=<file name>`
 This folder is outside `static/`, so that route is the only address they have.
 
 Each file comes from an image on <https://odin-diagnostics.com/>, used with ODIN's
-agreement. The two logos are the original files. The other seven are smaller
-copies, because the originals are between 1.5 and 4.4 MB each.
+agreement. The two logos and the site icon are the original files. The other
+seven are smaller copies, because the originals are between 1.5 and 4.4 MB each.
 
 | File | From the current site | Shows |
 | --- | --- | --- |
 | `logo-dark.svg` | `/images/logo/Odin-With-Text-Black.svg` | The ODIN mark and name in black, for light backgrounds |
 | `logo-light.svg` | `/images/logo/Odin-With-Text-White.svg` | The ODIN name in white with the mark in black |
-| `hero-headset-lens.webp` | `/images/hero/vr_green.png` | A close view of a headset lens in green light. It sits behind the opening text of the home page |
+| `site-icon.png` | `/android-chrome-192x192.png` | The ODIN mark in black on white, 192 pixels square. The original site's manifest icon, used here for the browser's tab |
+| `hero-headset-lens.webp` | `/images/hero/vr_green.png` | A close view of a headset lens in green light. The original site puts it behind the opening text of its home page |
 | `product-headset.jpg` | `/images/capabilities/V3_ODIN2.jpg` | The ODIN headset |
-| `eye-tracking.webp` | `/images/eyetracking/EyeOpen.gif` | A short loop of two eyes opening |
+| `eye-tracking.webp` | `/images/eyetracking/EyeOpen.gif` | Two eyes opening. It plays once and rests on the open eyes |
 | `team-marina-zellers.webp` | `/images/about/marina_zellers.jpeg` | Marina Zellers |
 | `team-michael-noon.webp` | `/images/about/michael_noon.jpeg` | Michael Noon |
 | `team-connor-fourt.webp` | `/images/about/connor_fourt.jpeg` | Connor Fourt |
@@ -22,9 +23,9 @@ copies, because the originals are between 1.5 and 4.4 MB each.
 
 ## What was changed
 
-Size and file type. The hero photo also has a thin line trimmed from its top and bottom edges.
+Size and file type. The lens photo also has a thin line trimmed from its top and bottom edges.
 
-- The hero photo is 1920 pixels wide. The original has a thin grey line along its top edge
+- The lens photo (`hero-headset-lens.webp`) is 1920 pixels wide. The original has a thin grey line along its top edge
   and a white one along its bottom edge. Two rows of pixels are trimmed from the top and six
   from the bottom, out of 2820, so both are gone. It is saved at a high quality setting,
   because a lower one left bands in the dark parts of the picture.
@@ -32,13 +33,16 @@ Size and file type. The hero photo also has a thin line trimmed from its top and
 - The team photos came round, with clear corners. Their files on the site are
   PNG images named `.jpeg`. They are WebP here, which keeps the clear corners at
   a small size.
-- The eye loop has the same 46 frames and timing as the original GIF, saved as an
-  animated WebP at about an eighth of the size.
+- The eye picture has the same 46 frames and timing as the original GIF, saved as an
+  animated WebP at about an eighth of the size. The original loops without end. This
+  one plays once, about two seconds, and stops: a page gives a visitor no way to pause
+  a moving picture. Only the file's loop count was changed for that (two bytes in its
+  ANIM chunk), so the frames are untouched.
 - The EvoNexus logo is 600 pixels square.
 
 ## Things to know
 
-- The hero photo's original was checked for a credit before it was added. Its embedded
+- The lens photo's original was checked for a credit before it was added. Its embedded
   information holds three dates, all 20 August 2024, and no photographer, copyright or
   license. Ask ODIN where the photo came from. If it is a stock photo, its license has to
   cover this site.
